@@ -62,6 +62,8 @@ git clone https://github.com/InformatiquePro/koda && cd koda
 npm install
 npm run tauri build
 ```
+*Au bout de plusieurs build, je vous recommandes de faire ```rm -rf src-tauri/target/release/build``` pour éviter les erreurs.*
+
 Pour le build android, il faut avoir configurer et installé android studio, avec le sdk cible installe.
 ```bash
 npm run tauri android init
