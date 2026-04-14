@@ -1,0 +1,65 @@
+@import '@radix-ui/themes/styles.css';
+
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.04);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-blur: blur(16px);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --col-todo: #6366f1;
+    --col-inprogress: #f59e0b;
+    --col-blocked: #ef4444;
+    --col-done: #22c55e;
+}
+
+body {
+    background: radial-gradient(ellipse at top, #0f0c29, #302b63, #24243e);
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Carte tâche — effet verre */
+.task-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.task-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Mode Kiosk — boutons tactiles plus gros */
+.kiosk-mode .task-card {
+    padding: 20px;
+    border-radius: 16px;
+}
+
+.kiosk-mode button {
+    min-height: 48px;
+    font-size: 1rem;
+}
+
+/* Barre latérale */
+.sidebar {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--glass-border);
+    width: 280px;
+    transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+    width: 60px;
+}
+
+/* Layout principal */
+.koda-layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}

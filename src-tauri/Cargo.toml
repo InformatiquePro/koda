@@ -1,0 +1,42 @@
+[package]
+name = "koda"
+version = "0.1.0"
+description = "KODA c'est l'organisation améliorée :)"
+authors = ["Charles-Elie"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "koda_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+tauri = { version = "2", features = ["protocol-asset"] }
+tauri-plugin-sql = { version = "2", features = ["sqlite"] }
+tauri-plugin-notification = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-http = "2"        # Pour les webhooks custom
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-sql = { version = "2.4.0", features = ["sqlite"] }
+tauri-plugin-notification = "2.3.3"
+tauri-plugin-fs = "2.5.0"
+tauri-plugin-http = "2.5.8"
+uuid = { version = "1.23.0", features = ["v4"] }
+chrono = { version = "0.4.44", features = ["serde"] }
+tokio = { version = "1.51.1", features = ["full"] }
+reqwest = { version = "0.13.2", features = ["json"] }
+tauri-plugin-dialog = "2"
+
