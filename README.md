@@ -1,4 +1,4 @@
-# ⚡ Koda (v0.1.0)
+# ⚡ Koda (v0.2.0)
 
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
@@ -8,6 +8,10 @@ Koda est un logiciel moderne d’organisation personnelle et d’affichage intel
 > Licence AGPL : Respecter-là !  
 
 ---
+
+## Comment utiliser ?
+>Aller voir la section release pour récupérer les builds.  
+>Je ne publie pas tout le temps de build android car c'est long à faire, mais vous pouvez compiler le projet vous même.
 
 ## ✨ Fonctionnalités actuelles
 
