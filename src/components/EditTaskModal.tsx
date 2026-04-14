@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import {
     Dialog, Flex, Text, TextField, TextArea,
-    Select, Button, Switch,
+    Select, Button, Switch, Badge, IconButton, Box,
 } from '@radix-ui/themes';
 import { useAppStore } from '../store/appStore';
-import { Task, Column, Priority } from '../types/koda';
+import { Task, Column, Priority, CustomAction } from '../types/koda';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
     task: Task;
@@ -20,6 +21,9 @@ export default function EditTaskModal({ task }: Props) {
     const [column, setColumn] = useState<Column>(task.column as Column);
     const [priority, setPriority] = useState<Priority>(task.priority as Priority);
     const [hasApi, setHasApi] = useState(task.hasApi);
+    const [apiUrl, setApiUrl] = useState(task.apiUrl ?? '');
+    const [apiMethod, setApiMethod] = useState(task.apiMethod ?? 'POST');
+    const [customActions, setCustomActions] = useState<CustomAction[]>(task.customActions);
 
     useEffect(() => {
         if (open) {
@@ -28,6 +32,9 @@ export default function EditTaskModal({ task }: Props) {
             setColumn(task.column as Column);
             setPriority(task.priority as Priority);
             setHasApi(task.hasApi);
+            setApiUrl(task.apiUrl ?? '');
+            setApiMethod(task.apiMethod ?? 'POST');
+            setCustomActions(task.customActions);
         }
     }, [open, task]);
 
@@ -40,14 +47,37 @@ export default function EditTaskModal({ task }: Props) {
                    column,
                    priority,
                    hasApi,
+                   apiUrl: hasApi ? apiUrl.trim() : undefined,
+                   apiMethod: hasApi ? apiMethod : undefined,
+                   customActions,
                    updatedAt: new Date().toISOString(),
         });
         setOpen(false);
     }
 
+    function addCustomAction() {
+        const newAction: CustomAction = {
+            id: uuidv4(),
+            label: 'Nouvelle action',
+            triggerColumn: column,
+            actionType: 'webhook',
+            payload: '',
+        };
+        setCustomActions((prev) => [...prev, newAction]);
+    }
+
+    function updateAction(id: string, field: keyof CustomAction, value: string) {
+        setCustomActions((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, [field]: value } : a))
+        );
+    }
+
+    function removeAction(id: string) {
+        setCustomActions((prev) => prev.filter((a) => a.id !== id));
+    }
+
     return (
         <>
-        {/* Bouton déclencheur directement ici, sans Tooltip ni wrapper Dialog.Trigger */}
         <button
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
@@ -79,7 +109,9 @@ export default function EditTaskModal({ task }: Props) {
             backdropFilter: 'blur(20px)',
             border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '16px',
-            maxWidth: 480,
+            maxWidth: 520,
+            maxHeight: '85vh',
+            overflowY: 'auto',
         }}
         >
         <Dialog.Title>
@@ -89,6 +121,7 @@ export default function EditTaskModal({ task }: Props) {
         </Dialog.Title>
 
         <Flex direction="column" gap="4" mt="4">
+
         {/* Titre */}
         <Flex direction="column" gap="1">
         <Text size="2" color="gray">Titre *</Text>
@@ -141,13 +174,204 @@ export default function EditTaskModal({ task }: Props) {
         </Flex>
         </Flex>
 
-        {/* Lié à une API */}
-        <Flex align="center" justify="between">
-        <Text size="2">Lié à une API externe</Text>
+        {/* Section API */}
+        <Box
+        style={{
+            border: '1px solid var(--glass-border)',
+            borderRadius: '10px',
+            overflow: 'hidden',
+        }}
+        >
+        {/* Toggle API */}
+        <Flex
+        align="center"
+        justify="between"
+        px="3"
+        py="2"
+        style={{ background: 'rgba(255,255,255,0.03)' }}
+        >
+        <Flex align="center" gap="2">
+        <Text size="2">🔌 Lié à une API externe</Text>
+        {hasApi && <Badge color="blue" size="1">Actif</Badge>}
+        </Flex>
         <Switch checked={hasApi} onCheckedChange={setHasApi} />
         </Flex>
 
-        {/* Boutons */}
+        {/* Champs API — visibles seulement si activé */}
+        {hasApi && (
+            <Flex
+            direction="column"
+            gap="3"
+            px="3"
+            py="3"
+            style={{ borderTop: '1px solid var(--glass-border)' }}
+            >
+            {/* URL */}
+            <Flex direction="column" gap="1">
+            <Text size="2" color="gray">URL de l'API</Text>
+            <TextField.Root
+            size="2"
+            value={apiUrl}
+            onChange={(e) => setApiUrl(e.target.value)}
+            placeholder="https://mon-api.com/webhook"
+            />
+            </Flex>
+
+            {/* Méthode HTTP */}
+            <Flex direction="column" gap="1">
+            <Text size="2" color="gray">Méthode HTTP</Text>
+            <Select.Root value={apiMethod} onValueChange={setApiMethod}>
+            <Select.Trigger />
+            <Select.Content>
+            <Select.Item value="POST">POST</Select.Item>
+            <Select.Item value="GET">GET</Select.Item>
+            <Select.Item value="PUT">PUT</Select.Item>
+            <Select.Item value="PATCH">PATCH</Select.Item>
+            <Select.Item value="DELETE">DELETE</Select.Item>
+            </Select.Content>
+            </Select.Root>
+            </Flex>
+
+            {/* Info payload */}
+            <Text size="1" color="gray" style={{ opacity: 0.6 }}>
+            💡 Le contenu de la tâche (JSON) sera envoyé automatiquement dans le body.
+            </Text>
+
+            {/* Bouton test */}
+            <Button
+            variant="soft"
+            color="blue"
+            size="2"
+            onClick={async () => {
+                if (!apiUrl.trim()) return;
+                try {
+                    const { invoke } = await import('@tauri-apps/api/core');
+                    const result = await invoke<string>('send_webhook', {
+                        url: apiUrl,
+                        method: apiMethod,
+                        body: JSON.stringify({ ...task, title, description, column, priority }),
+                    });
+                    alert(`✅ Succès : ${result}`);
+                } catch (e) {
+                    alert(`❌ Erreur : ${e}`);
+                }
+            }}
+            >
+            🚀 Tester l'appel API
+            </Button>
+            </Flex>
+        )}
+        </Box>
+
+        {/* Section Actions contextuelles */}
+        <Box
+        style={{
+            border: '1px solid var(--glass-border)',
+            borderRadius: '10px',
+            overflow: 'hidden',
+        }}
+        >
+        <Flex
+        align="center"
+        justify="between"
+        px="3"
+        py="2"
+        style={{ background: 'rgba(255,255,255,0.03)' }}
+        >
+        <Text size="2">⚡ Actions contextuelles</Text>
+        <Badge color="gray" size="1">{customActions.length}</Badge>
+        </Flex>
+
+        <Flex direction="column" gap="2" px="3" py="3" style={{ borderTop: '1px solid var(--glass-border)' }}>
+        <Text size="1" color="gray" style={{ opacity: 0.7 }}>
+        Ces boutons apparaissent sur la carte dans la colonne choisie.
+        </Text>
+
+        {customActions.map((action) => (
+            <Flex
+            key={action.id}
+            direction="column"
+            gap="2"
+            p="2"
+            style={{
+                background: 'rgba(255,255,255,0.03)',
+                                        borderRadius: 8,
+                                        border: '1px solid var(--glass-border)',
+            }}
+            >
+            <Flex gap="2" align="center">
+            {/* Label du bouton */}
+            <TextField.Root
+            size="1"
+            value={action.label}
+            onChange={(e) => updateAction(action.id, 'label', e.target.value)}
+            placeholder="Label du bouton"
+            style={{ flex: 1 }}
+            />
+            {/* Supprimer */}
+            <IconButton
+            size="1"
+            variant="ghost"
+            color="red"
+            onClick={() => removeAction(action.id)}
+            >
+            ✕
+            </IconButton>
+            </Flex>
+
+            <Flex gap="2">
+            {/* Colonne déclencheur */}
+            <Select.Root
+            value={action.triggerColumn}
+            onValueChange={(v) => updateAction(action.id, 'triggerColumn', v)}
+            >
+            <Select.Trigger style={{ flex: 1 }} />
+            <Select.Content>
+            <Select.Item value="TODO">À faire</Select.Item>
+            <Select.Item value="IN_PROGRESS">En cours</Select.Item>
+            <Select.Item value="BLOCKED">Bloqué</Select.Item>
+            <Select.Item value="DONE">Fini</Select.Item>
+            </Select.Content>
+            </Select.Root>
+
+            {/* Type d'action */}
+            <Select.Root
+            value={action.actionType}
+            onValueChange={(v) => updateAction(action.id, 'actionType', v)}
+            >
+            <Select.Trigger style={{ flex: 1 }} />
+            <Select.Content>
+            <Select.Item value="webhook">🔗 Webhook</Select.Item>
+            <Select.Item value="notify">🔔 Notification</Select.Item>
+            <Select.Item value="archive">📦 Archiver</Select.Item>
+            </Select.Content>
+            </Select.Root>
+            </Flex>
+
+            {/* URL payload si webhook */}
+            {action.actionType === 'webhook' && (
+                <TextField.Root
+                size="1"
+                value={action.payload ?? ''}
+                onChange={(e) => updateAction(action.id, 'payload', e.target.value)}
+                placeholder="https://mon-api.com/action"
+                />
+            )}
+            </Flex>
+        ))}
+
+        <Button
+        variant="soft"
+        size="1"
+        onClick={addCustomAction}
+        style={{ marginTop: 4 }}
+        >
+        ＋ Ajouter une action
+        </Button>
+        </Flex>
+        </Box>
+
+        {/* Boutons save/cancel */}
         <Flex gap="2" justify="end" mt="2">
         <Button variant="soft" color="gray" onClick={() => setOpen(false)}>
         Annuler
@@ -160,6 +384,7 @@ export default function EditTaskModal({ task }: Props) {
         Sauvegarder
         </Button>
         </Flex>
+
         </Flex>
         </Dialog.Content>
         </Dialog.Root>
