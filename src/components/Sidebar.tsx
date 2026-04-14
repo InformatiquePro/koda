@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Box, Flex, Text, IconButton, Separator, Switch, TextField, Button } from '@radix-ui/themes';
+import { Box, Flex, Text, IconButton, Separator, Switch, TextField, Button, Badge } from '@radix-ui/themes';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { useAppStore } from '../store/appStore';
+import { useWebServer } from '../hooks/useWebServer';
 import { Task } from '../types/koda';
 
 export default function Sidebar() {
-    const [settingsOpen, setSettingsOpen] = useState(false);
     const { sidebarOpen, toggleSidebar, settings, updateSettings, tasks, importTasks } = useAppStore();
+    const { serverUrl, running, startServer, stopServer } = useWebServer();
+    const [settingsOpen, setSettingsOpen] = useState(false);
 
     const stats = {
         todo: tasks.filter((t) => t.column === 'TODO').length,
@@ -18,8 +20,6 @@ export default function Sidebar() {
 
     async function exportJSON() {
         if (tasks.length === 0) return;
-
-        // On inclut les settings dans l'export
         const data = JSON.stringify({
             version: 1,
             exportedAt: new Date().toISOString(),
@@ -30,7 +30,6 @@ export default function Sidebar() {
                                     },
                                     tasks,
         }, null, 2);
-
         try {
             const filePath = await save({
                 defaultPath: `koda-export-${new Date().toISOString().slice(0, 10)}.json`,
@@ -50,22 +49,14 @@ export default function Sidebar() {
                 filters: [{ name: 'JSON', extensions: ['json'] }],
             });
             if (!filePath) return;
-
             const content = await readTextFile(filePath as string);
             const parsed = JSON.parse(content);
-
-            // Support ancien format (tableau direct) et nouveau format (objet avec version)
             if (Array.isArray(parsed)) {
-                // Ancien format — juste les tâches
                 importTasks(parsed as Task[]);
                 return;
             }
-
             if (parsed.version === 1 && Array.isArray(parsed.tasks)) {
-                // Nouveau format — tâches + settings météo
                 importTasks(parsed.tasks as Task[]);
-
-                // Restaure les settings météo seulement si présents dans le fichier
                 const incoming = parsed.settings ?? {};
                 updateSettings({
                     ...(incoming.weatherCity   && { weatherCity:   incoming.weatherCity }),
@@ -74,7 +65,6 @@ export default function Sidebar() {
                 });
                 return;
             }
-
             alert('Fichier invalide — ce n\'est pas un export Koda.');
         } catch (e) {
             console.error('Import échoué :', e);
@@ -117,18 +107,17 @@ export default function Sidebar() {
             <StatRow label="Fini"     value={stats.done}       color="var(--col-done)" />
             </Flex>
 
-            <Separator size="4" mb="4" />
+            <Separator size="4" mb="3" />
 
-            {/* Paramètres — menu déroulant */}
+            {/* Paramètres déroulants */}
             <Box
             style={{
                 border: '1px solid var(--glass-border)',
                          borderRadius: '10px',
                          overflow: 'hidden',
-                         marginBottom: '8px',
+                         marginBottom: '12px',
             }}
             >
-            {/* En-tête cliquable */}
             <Flex
             align="center"
             justify="between"
@@ -142,15 +131,10 @@ export default function Sidebar() {
                          userSelect: 'none',
             }}
             >
-            <Text size="1" color="gray" weight="bold">
-            ⚙️ PARAMÈTRES
-            </Text>
-            <Text size="1" color="gray">
-            {settingsOpen ? '▲' : '▼'}
-            </Text>
+            <Text size="1" color="gray" weight="bold">⚙️ PARAMÈTRES</Text>
+            <Text size="1" color="gray">{settingsOpen ? '▲' : '▼'}</Text>
             </Flex>
 
-            {/* Contenu déroulant */}
             {settingsOpen && (
                 <Flex
                 direction="column"
@@ -168,7 +152,6 @@ export default function Sidebar() {
                 />
                 </Flex>
 
-                {/* Basse luminosité */}
                 {settings.kioskMode && (
                     <Flex align="center" justify="between">
                     <Text size="2">Basse luminosité</Text>
@@ -179,7 +162,6 @@ export default function Sidebar() {
                     </Flex>
                 )}
 
-                {/* Nom de ville */}
                 <Flex direction="column" gap="1">
                 <Text size="2" color="gray">Ville (nom affiché)</Text>
                 <TextField.Root
@@ -190,7 +172,6 @@ export default function Sidebar() {
                 />
                 </Flex>
 
-                {/* ID ville OpenWeatherMap */}
                 <Flex direction="column" gap="1">
                 <Text size="2" color="gray">ID Ville OpenWeatherMap</Text>
                 <TextField.Root
@@ -212,7 +193,6 @@ export default function Sidebar() {
                 </Text>
                 </Flex>
 
-                {/* Clé API */}
                 <Flex direction="column" gap="1">
                 <Text size="2" color="gray">Clé API OpenWeatherMap</Text>
                 <TextField.Root
@@ -226,6 +206,38 @@ export default function Sidebar() {
                 </Flex>
             )}
             </Box>
+
+            <Separator size="4" mb="3" />
+
+            {/* Serveur Web */}
+            <Text size="1" color="gray" weight="bold" mb="2">ACCÈS WEB</Text>
+            <Flex direction="column" gap="2" mb="4">
+            {!running ? (
+                <Button variant="soft" color="violet" size="2" onClick={() => startServer(3131)}>
+                🌐 Démarrer le serveur web
+                </Button>
+            ) : (
+                <Flex direction="column" gap="2">
+                <Badge color="green" size="2">🟢 Serveur actif</Badge>
+                <Text size="1" color="gray">Accède à Koda depuis :</Text>
+                <Text
+                size="2"
+                weight="bold"
+                style={{ color: 'var(--accent-9)', wordBreak: 'break-all' }}
+                >
+                {serverUrl}
+                </Text>
+                <Text size="1" color="gray" style={{ opacity: 0.6 }}>
+                Ouvre cette URL sur n'importe quel appareil du réseau Wi-Fi
+                </Text>
+                <Button variant="soft" color="red" size="2" onClick={stopServer}>
+                ⏹ Arrêter le serveur
+                </Button>
+                </Flex>
+            )}
+            </Flex>
+
+            <Separator size="4" mb="3" />
 
             {/* Export / Import */}
             <Text size="1" color="gray" weight="bold" mb="2">DONNÉES</Text>
