@@ -1,4 +1,4 @@
-// src-tauri/src/lib.rs  — REMPLACE TOUT LE FICHIER
+// src-tauri/src/lib.rs  
 
 use serde::{Deserialize, Serialize};
 
