@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koda — Web</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0c29;
+      color: #fff;
+      min-height: 100vh;
+    }
+    header {
+      padding: 16px 20px;
+      background: rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.3rem; color: #a78bfa; }
+    .status { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; }
+    .status.connected { background: #22c55e22; color: #22c55e; }
+    .status.disconnected { background: #ef444422; color: #ef4444; }
+
+    .board {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      overflow-x: auto;
+      min-height: calc(100vh - 60px);
+    }
+    .column {
+      min-width: 260px;
+      flex: 1;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .col-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .col-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .count {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 12px;
+      border-left-width: 3px;
+      border-left-style: solid;
+    }
+    .card-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; }
+    .card-desc { font-size: 0.78rem; opacity: 0.6; margin-bottom: 6px; }
+    .badges { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    .badge-low    { background: #6b728022; color: #9ca3af; }
+    .badge-medium { background: #f59e0b22; color: #f59e0b; }
+    .badge-high   { background: #f9731622; color: #f97316; }
+    .badge-urgent { background: #ef444422; color: #ef4444; }
+    .badge-api    { background: #3b82f622; color: #3b82f6; }
+
+    .card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .btn-action {
+      background: rgba(139,92,246,0.2);
+      color: #a78bfa;
+      border: 1px solid rgba(139,92,246,0.3);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .btn-move {
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .add-btn {
+      width: 100%;
+      background: none;
+      border: 1px dashed rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: rgba(255,255,255,0.4);
+      padding: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    /* Modal ajout tâche */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #1a1730;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      width: 90%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .modal h2 { color: #a78bfa; font-size: 1.1rem; }
+    .modal label { font-size: 0.8rem; color: rgba(255,255,255,0.5); display: block; margin-bottom: 4px; }
+    .modal input, .modal textarea, .modal select {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+    }
+    .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-cancel {
+      background: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.6);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    .btn-save {
+      background: #7c3aed;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Koda</h1>
+  <span class="status disconnected" id="status">⚪ Déconnecté</span>
+</header>
+
+<div class="board" id="board"></div>
+
+<!-- Modal ajout -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>➕ Nouvelle tâche</h2>
+    <div>
+      <label>Titre *</label>
+      <input id="m-title" placeholder="Titre de la tâche" />
+    </div>
+    <div>
+      <label>Description</label>
+      <textarea id="m-desc" rows="2" placeholder="Optionnel"></textarea>
+    </div>
+    <div>
+      <label>Priorité</label>
+      <select id="m-priority">
+        <option value="low">🟢 Faible</option>
+        <option value="medium" selected>🟡 Moyenne</option>
+        <option value="high">🟠 Haute</option>
+        <option value="urgent">🔴 Urgente</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveNewTask()">Créer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const COLS = [
+    { id: 'TODO',        label: 'À FAIRE',  color: '#6366f1' },
+    { id: 'IN_PROGRESS', label: 'EN COURS', color: '#f59e0b' },
+    { id: 'BLOCKED',     label: 'BLOQUÉ',   color: '#ef4444' },
+    { id: 'DONE',        label: 'FINI',     color: '#22c55e' },
+  ];
+
+  let tasks = [];
+  let ws = null;
+  let pendingColumn = 'TODO';
+
+  function connect() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+    ws.onopen = () => {
+      document.getElementById('status').textContent = '🟢 Connecté';
+      document.getElementById('status').className = 'status connected';
+    };
+    ws.onclose = () => {
+      document.getElementById('status').textContent = '⚪ Déconnecté';
+      document.getElementById('status').className = 'status disconnected';
+      setTimeout(connect, 3000);
+    };
+    ws.onmessage = (e) => {
+      tasks = JSON.parse(e.data);
+      render();
+    };
+  }
+
+  function send() {
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify(tasks));
+    }
+  }
+
+  function render() {
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    COLS.forEach(col => {
+      const colTasks = tasks.filter(t => t.column === col.id);
+      const div = document.createElement('div');
+      div.className = 'column';
+      div.innerHTML = `
+        <div class="col-header">
+          <div class="col-title">
+            <div class="dot" style="background:${col.color}"></div>
+            <span style="color:${col.color}">${col.label}</span>
+          </div>
+          <span class="count">${colTasks.length}</span>
+        </div>
+        ${colTasks.map(t => cardHTML(t, col.color)).join('')}
+        <button class="add-btn" onclick="openModal('${col.id}')">＋ Ajouter ici</button>
+      `;
+      board.appendChild(div);
+    });
+  }
+
+  function cardHTML(t, color) {
+    const priorityClass = `badge-${t.priority}`;
+    const actions = (t.customActions || []).map(a =>
+      `<button class="btn-action" onclick="runAction('${a.actionType}','${a.payload || ''}','${t.id}')">${a.label}</button>`
+    ).join('');
+
+    const colIdx = COLS.findIndex(c => c.id === t.column);
+    const prevCol = colIdx > 0 ? `<button class="btn-move" onclick="moveTask('${t.id}','${COLS[colIdx-1].id}')">◀</button>` : '';
+    const nextCol = colIdx < COLS.length - 1 ? `<button class="btn-move" onclick="moveTask('${t.id}','${COLS[colIdx+1].id}')">▶</button>` : '';
+
+    return `
+      <div class="card" style="border-left-color:${color}">
+        <div class="card-title">${t.title}</div>
+        ${t.description ? `<div class="card-desc">${t.description}</div>` : ''}
+        <div class="badges">
+          <span class="badge ${priorityClass}">${t.priority}</span>
+          ${t.hasApi ? '<span class="badge badge-api">API</span>' : ''}
+        </div>
+        <div class="card-actions">
+          ${prevCol}${nextCol}
+          ${actions}
+        </div>
+      </div>
+    `;
+  }
+
+  function moveTask(id, newCol) {
+    tasks = tasks.map(t => t.id === id ? { ...t, column: newCol, updatedAt: new Date().toISOString() } : t);
+    render();
+    send();
+  }
+
+  async function runAction(type, payload, taskId) {
+    if (type === 'webhook' && payload) {
+      const task = tasks.find(t => t.id === taskId);
+      const res = await fetch(payload, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task),
+      });
+      alert(res.ok ? '✅ Webhook envoyé' : `❌ HTTP ${res.status}`);
+    }
+  }
+
+  function openModal(col) {
+    pendingColumn = col;
+    document.getElementById('modal').classList.add('open');
+    document.getElementById('m-title').focus();
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  function saveNewTask() {
+    const title = document.getElementById('m-title').value.trim();
+    if (!title) return;
+    const newTask = {
+      id: crypto.randomUUID(),
+      title,
+      description: document.getElementById('m-desc').value.trim() || undefined,
+      column: pendingColumn,
+      priority: document.getElementById('m-priority').value,
+      tags: [], hasApi: false, attachments: [], customActions: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    tasks.push(newTask);
+    render();
+    send();
+    closeModal();
+    document.getElementById('m-title').value = '';
+    document.getElementById('m-desc').value = '';
+  }
+
+  connect();
+</script>
+</body>
+</html>
