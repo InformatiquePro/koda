@@ -1,9 +1,19 @@
 // src/components/KanbanBoard.tsx
 
-import { DndContext, DragEndEvent, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+    DndContext,
+    DragOverEvent,
+    rectIntersection,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragOverlay,
+    DragStartEvent,
+} from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { Box, Flex, Text, Badge, Button } from '@radix-ui/themes';
+import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import TaskCard from './TaskCard';
 import AddTaskModal from './AddTaskModal';
@@ -16,18 +26,19 @@ const COLUMNS: { id: Column; label: string; color: string }[] = [
     { id: 'DONE',        label: 'FINI',     color: 'var(--col-done)' },
 ];
 
-// Zone de drop pour chaque colonne
-function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
+function DroppableColumn({ id, color, children }: { id: string; color: string; children: React.ReactNode }) {
     const { setNodeRef, isOver } = useDroppable({ id });
     return (
         <div
         ref={setNodeRef}
         style={{
             flex: 1,
-            minHeight: 100,
+            minHeight: 120,
             borderRadius: 8,
-            transition: 'background 0.2s',
-            background: isOver ? 'rgba(255,255,255,0.05)' : 'transparent',
+            transition: 'background 0.15s, box-shadow 0.15s',
+            background: isOver ? `${color}18` : 'transparent',
+            boxShadow: isOver ? `inset 0 0 0 2px ${color}60` : 'none',
+            padding: 4,
         }}
         >
         {children}
@@ -37,33 +48,46 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
 
 export default function KanbanBoard() {
     const { tasks, moveTask } = useAppStore();
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
 
-    // PointerSensor évite que le clic sur les boutons déclenche le drag
     const sensors = useSensors(
         useSensor(PointerSensor, {
-            activationConstraint: { distance: 8 }, // drag démarre après 8px de mouvement
+            activationConstraint: { distance: 8 },
         })
     );
 
-    function handleDragEnd(event: DragEndEvent) {
+    function handleDragStart(event: DragStartEvent) {
+        const task = tasks.find((t) => t.id === event.active.id);
+        setActiveTask(task ?? null);
+    }
+
+    function handleDragOver(event: DragOverEvent) {
         const { active, over } = event;
         if (!over) return;
 
         const taskId = active.id as string;
         const overId = over.id as string;
 
-        // Si on drop sur une colonne directement
+        // Si on survole une colonne directement
         const isColumn = COLUMNS.some((c) => c.id === overId);
         if (isColumn) {
-            moveTask(taskId, overId as Column);
+            const currentTask = tasks.find((t) => t.id === taskId);
+            if (currentTask && currentTask.column !== overId) {
+                moveTask(taskId, overId as Column);
+            }
             return;
         }
 
-        // Si on drop sur une autre carte, on prend la colonne de cette carte
+        // Si on survole une carte → prend sa colonne
         const overTask = tasks.find((t) => t.id === overId);
-        if (overTask && overTask.column !== tasks.find((t) => t.id === taskId)?.column) {
+        const currentTask = tasks.find((t) => t.id === taskId);
+        if (overTask && currentTask && overTask.column !== currentTask.column) {
             moveTask(taskId, overTask.column as Column);
         }
+    }
+
+    function handleDragEnd() {
+        setActiveTask(null);
     }
 
     return (
@@ -90,7 +114,13 @@ export default function KanbanBoard() {
         </Flex>
 
         {/* Board */}
-        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+        <DndContext
+        sensors={sensors}
+        collisionDetection={rectIntersection}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        >
         <Flex gap="4" p="4" style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden' }}>
         {COLUMNS.map((col) => {
             const colTasks = tasks.filter((t: Task) => t.column === col.id);
@@ -104,7 +134,7 @@ export default function KanbanBoard() {
                     backdropFilter: 'var(--glass-blur)',
                     border: '1px solid var(--glass-border)',
                     borderRadius: '16px',
-                    padding: '16px',
+                    padding: '12px',
                     display: 'flex',
                     flexDirection: 'column',
                     maxHeight: '100%',
@@ -120,12 +150,12 @@ export default function KanbanBoard() {
                 <Badge color="gray" variant="soft">{colTasks.length}</Badge>
                 </Flex>
 
-                {/* Zone droppable + cartes */}
+                {/* Zone droppable */}
                 <SortableContext
                 items={colTasks.map((t) => t.id)}
                 strategy={verticalListSortingStrategy}
                 >
-                <DroppableColumn id={col.id}>
+                <DroppableColumn id={col.id} color={col.color}>
                 <Flex direction="column" gap="2">
                 {colTasks.map((task: Task) => (
                     <TaskCard key={task.id} task={task} columnColor={col.color} />
@@ -144,10 +174,10 @@ export default function KanbanBoard() {
                     size="1"
                     style={{
                         width: '100%',
-                    cursor: 'pointer',
-                    color: col.color,
-                    border: `1px dashed ${col.color}40`,
-                    borderRadius: '8px',
+                        cursor: 'pointer',
+                        color: col.color,
+                        border: `1px dashed ${col.color}40`,
+                        borderRadius: '8px',
                     }}
                     >
                     ＋ Ajouter ici
@@ -159,6 +189,16 @@ export default function KanbanBoard() {
             );
         })}
         </Flex>
+
+        {/* Carte fantôme pendant le drag */}
+        <DragOverlay>
+        {activeTask ? (
+            <div style={{ opacity: 0.85, transform: 'rotate(2deg)' }}>
+            <TaskCard task={activeTask} columnColor="var(--accent-9)" />
+            </div>
+        ) : null}
+        </DragOverlay>
+
         </DndContext>
         </Flex>
     );
