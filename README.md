@@ -67,5 +67,11 @@ Pour le build android, il faut avoir configurer et installé android studio, ave
 npm run tauri android init
 npm run tauri android build
 ```
-Noubliez pas de signer l'apk sinon votre appareil refusera de l'installer.
+Noubliez pas de signer l'apk sinon votre appareil refusera de l'installer.  
+Astuce : si vous êtes sur Linux, il est probable que les outils zipalign et apksigner nécéssaire pour signer l'apk ne sois pas disponnible alors que tout est bnien installé.  
+Pour corriger cela lancer ces commandes en adaptant à votre distribution linux/chemin d'accès aux SDK :
+```bash
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)
+```
 
