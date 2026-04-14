@@ -2,6 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
+mod server;
+use server::{start_server, SERVER_STATE};
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CustomAction {
@@ -50,6 +53,40 @@ pub struct AppSettings {
     #[serde(rename = "weatherCity")]
     pub weather_city: Option<String>,
     pub theme: String,
+}
+
+#[tauri::command]
+async fn start_web_server(port: u16) -> Result<String, String> {
+    // Met à jour les tâches dans le state partagé
+    tokio::spawn(async move {
+        start_server(port).await;
+    });
+
+    // Récupère l'IP locale
+    let ip = local_ip().unwrap_or_else(|| "localhost".to_string());
+    Ok(format!("http://{}:{}", ip, port))
+}
+
+#[tauri::command]
+async fn sync_tasks_to_server(tasks: Vec<Task>) -> Result<(), String> {
+    let mut stored = SERVER_STATE.tasks.lock().await;
+    *stored = tasks.clone();
+    let json = serde_json::to_string(&tasks).map_err(|e| e.to_string())?;
+    let _ = SERVER_STATE.tx.send(json);
+    Ok(())
+}
+
+fn local_ip() -> Option<String> {
+    use std::net::UdpSocket;
+    let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("8.8.8.8:80").ok()?;
+    Some(socket.local_addr().ok()?.ip().to_string())
+}
+
+#[tauri::command]
+async fn stop_web_server() -> Result<(), String> {
+    let _ = SERVER_STATE.shutdown.send(());
+    Ok(())
 }
 
 #[tauri::command]
@@ -168,6 +205,9 @@ fn main() {
         delete_task,
         send_webhook,
         export_tasks_json,
+        start_web_server,      // serveur web
+        sync_tasks_to_server,  // serveur web
+        stop_web_server, // serveur web
     ])
     .run(tauri::generate_context!())
     .expect("error while running Koda");
