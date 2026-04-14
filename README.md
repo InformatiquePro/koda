@@ -43,7 +43,7 @@ Le projet est en constante évolution.
 
 ### Prochaines plateformes :
 - 🪟 Windows
-- 🤖 Android  ( andoid 6 et +) 
+- 🤖 Android  ( andoid 6 et +) ANDROID 15 ET + DEJA DISPO DANS RELEASE V0.1.0
 
 ### Prochaines fonctionnalités :
 
