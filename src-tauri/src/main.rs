@@ -1,4 +1,4 @@
-// src-tauri/src/main.rs — REMPLACE TOUT LE FICHIER
+// src-tauri/src/main.rs 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
