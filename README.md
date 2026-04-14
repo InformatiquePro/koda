@@ -68,7 +68,7 @@ npm run tauri android init
 npm run tauri android build
 ```
 Noubliez pas de signer l'apk sinon votre appareil refusera de l'installer.  
-Astuce : si vous êtes sur Linux, il est probable que les outils zipalign et apksigner nécéssaire pour signer l'apk ne sois pas disponnible alors que tout est bnien installé.  
+Astuce : si vous êtes sur Linux, il est probable que les outils zipalign et apksigner nécéssaire pour signer l'apk ne sois pas disponnible alors que tout est bien installé.  
 Pour corriger cela lancer ces commandes en adaptant à votre distribution linux/chemin d'accès aux SDK :
 ```bash
 export ANDROID_HOME=$HOME/Android/Sdk
