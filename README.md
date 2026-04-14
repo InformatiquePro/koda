@@ -56,7 +56,7 @@ Le projet est en constante évolution.
 ## ⚙️ Installation (Linux)
 
 > Vous voulez build le projet ?
-
+> le build sera après dispo dans cette emplacement : /src-tauri/target/release/bundle/appimage_deb/data/usr/bin/
 ```bash
 git clone https://github.com/InformatiquePro/koda && cd koda
 npm install
