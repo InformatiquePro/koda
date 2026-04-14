@@ -1,4 +1,4 @@
-// src-tauri/src/main.rs 
+// src-tauri/src/main.rs
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
@@ -24,6 +24,10 @@ pub struct Task {
     pub tags: Vec<String>,
     #[serde(rename = "hasApi")]
     pub has_api: bool,
+    #[serde(rename = "apiUrl")]
+    pub api_url: Option<String>,      // pour api
+    #[serde(rename = "apiMethod")]
+    pub api_method: Option<String>,   // pour api
     pub attachments: Vec<String>,
     #[serde(rename = "customActions")]
     pub custom_actions: Vec<CustomAction>,
