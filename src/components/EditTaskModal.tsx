@@ -40,6 +40,13 @@ export default function EditTaskModal({ task }: Props) {
 
     function handleSave() {
         if (!title.trim()) return;
+
+        // Met à jour la colonne de toutes les actions pour suivre la tâche
+        const updatedActions = customActions.map((a) => ({
+            ...a,
+            triggerColumn: column,
+        }));
+
         updateTask({
             ...task,
             title: title.trim(),
@@ -49,7 +56,7 @@ export default function EditTaskModal({ task }: Props) {
                    hasApi,
                    apiUrl: hasApi ? apiUrl.trim() : undefined,
                    apiMethod: hasApi ? apiMethod : undefined,
-                   customActions,
+                   customActions: updatedActions,
                    updatedAt: new Date().toISOString(),
         });
         setOpen(false);
@@ -59,7 +66,7 @@ export default function EditTaskModal({ task }: Props) {
         const newAction: CustomAction = {
             id: uuidv4(),
             label: 'Nouvelle action',
-            triggerColumn: column,
+            triggerColumn: column, // suit automatiquement la colonne de la tâche
             actionType: 'webhook',
             payload: '',
         };
@@ -319,34 +326,18 @@ export default function EditTaskModal({ task }: Props) {
             </IconButton>
             </Flex>
 
-            <Flex gap="2">
-            {/* Colonne déclencheur */}
-            <Select.Root
-            value={action.triggerColumn}
-            onValueChange={(v) => updateAction(action.id, 'triggerColumn', v)}
-            >
-            <Select.Trigger style={{ flex: 1 }} />
-            <Select.Content>
-            <Select.Item value="TODO">À faire</Select.Item>
-            <Select.Item value="IN_PROGRESS">En cours</Select.Item>
-            <Select.Item value="BLOCKED">Bloqué</Select.Item>
-            <Select.Item value="DONE">Fini</Select.Item>
-            </Select.Content>
-            </Select.Root>
-
             {/* Type d'action */}
             <Select.Root
             value={action.actionType}
             onValueChange={(v) => updateAction(action.id, 'actionType', v)}
             >
-            <Select.Trigger style={{ flex: 1 }} />
+            <Select.Trigger />
             <Select.Content>
             <Select.Item value="webhook">🔗 Webhook</Select.Item>
             <Select.Item value="notify">🔔 Notification</Select.Item>
             <Select.Item value="archive">📦 Archiver</Select.Item>
             </Select.Content>
             </Select.Root>
-            </Flex>
 
             {/* URL payload si webhook */}
             {action.actionType === 'webhook' && (
@@ -354,7 +345,7 @@ export default function EditTaskModal({ task }: Props) {
                 size="1"
                 value={action.payload ?? ''}
                 onChange={(e) => updateAction(action.id, 'payload', e.target.value)}
-                placeholder="https://mon-api.com/action"
+                placeholder="https://discord.com/api/webhooks/..."
                 />
             )}
             </Flex>
