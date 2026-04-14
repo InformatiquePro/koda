@@ -87,17 +87,64 @@ async fn send_webhook(
     body: Option<String>,
 ) -> Result<String, String> {
     let client = reqwest::Client::new();
+
+    // Détecte Discord et construit le bon payload
+    let final_body = if url.contains("discord.com/api/webhooks") {
+        let content = if let Some(ref b) = body {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(b) {
+                format!(
+                    "**{}**\nColonne : {}\nPriorité : {}",
+                    parsed["title"].as_str().unwrap_or("Tâche Koda"),
+                        parsed["column"].as_str().unwrap_or("?"),
+                        parsed["priority"].as_str().unwrap_or("?"),
+                )
+            } else {
+                b.clone()
+            }
+        } else {
+            "Notification Koda".to_string()
+        };
+
+        // Utilise serde_json pour construire le JSON proprement — évite les erreurs d'échappement
+        serde_json::json!({ "content": content }).to_string()
+    } else {
+        body.unwrap_or_default()
+    };
+
     let res: Result<reqwest::Response, reqwest::Error> = match method.as_str() {
         "POST" => client
         .post(&url)
         .header("Content-Type", "application/json")
-        .body(body.unwrap_or_default())
+        .body(final_body)
         .send()
         .await,
+        "PUT" => client
+        .put(&url)
+        .header("Content-Type", "application/json")
+        .body(final_body)
+        .send()
+        .await,
+        "PATCH" => client
+        .patch(&url)
+        .header("Content-Type", "application/json")
+        .body(final_body)
+        .send()
+        .await,
+        "DELETE" => client.delete(&url).send().await,
         _ => client.get(&url).send().await,
     };
+
     match res {
-        Ok(r) => Ok(format!("HTTP {}", r.status())),
+        Ok(r) => {
+            let status = r.status();
+            if status.is_success() || status.as_u16() == 204 {
+                Ok(format!("HTTP {}", status))
+            } else {
+                // Récupère le message d'erreur de la réponse pour aider au debug
+                let err_body = r.text().await.unwrap_or_default();
+                Err(format!("HTTP {} — {}", status, err_body))
+            }
+        }
         Err(e) => Err(e.to_string()),
     }
 }
