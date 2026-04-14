@@ -2,7 +2,7 @@
 
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
-> ⚠️ Version actuelle : **v0.2.0 (Linux et android 15 et + uniquement)**  
+> ⚠️ Version actuelle : **v0.2.0 (Linux et tout appareil qui a un navigateur web**  
 > 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.  
 > Tu veux build toi même ? Regarde comment faire [ICI](https://github.com/InformatiquePro/koda?tab=readme-ov-file#%EF%B8%8F-build-linuxandroid)  
 > Licence AGPL : Respecter-là !  
@@ -55,7 +55,7 @@ Le projet est en constante évolution.
 
 ### Prochaines plateformes :
 - 🪟 Windows
-- 🤖 Android  ( andoid 6 et +) ANDROID 15 ET + DEJA DISPO DANS RELEASE V0.1.0
+- 🤖 Android  Arrive bientot : app sera lancé sur le pc, et fera un web-serveur syncro entre les 2.
 
 ### Prochaines fonctionnalités :
 
@@ -80,7 +80,7 @@ npm install
 npm run tauri build
 ```
 *Au bout de plusieurs build, je vous recommandes de faire ```rm -rf src-tauri/target/release/build``` pour éviter les erreurs.*
-
+>Version APK Android abandonné. Déplacement de cette version en un serveur web, il n'est pas garantie que ça marche encore ce build, à éviter d'utiliser.
 Pour le build android, il faut avoir configurer et installé android studio, avec le sdk cible installe.
 ```bash
 npm run tauri android init
