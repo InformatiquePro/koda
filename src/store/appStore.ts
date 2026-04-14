@@ -26,6 +26,10 @@ const DEFAULT_SETTINGS: AppSettings = {
     theme: 'dark',
 };
 
+const syncIfNeeded = (updatedTasks: Task[]) => {
+    invoke('sync_tasks_to_server', { tasks: updatedTasks }).catch(() => {});
+};
+
 export const useAppStore = create<AppStore>((set, get) => ({
     tasks: [],
     settings: DEFAULT_SETTINGS,
@@ -54,31 +58,43 @@ export const useAppStore = create<AppStore>((set, get) => ({
                                                            createdAt: new Date().toISOString(),
                                                            updatedAt: new Date().toISOString(),
         };
-        set((state) => ({ tasks: [...state.tasks, newTask] }));
+        set((state) => {
+            const newTasks = [...state.tasks, newTask];
+            syncIfNeeded(newTasks);
+            return { tasks: newTasks };
+        });
         invoke('save_task', { task: newTask }).catch(console.error);
     },
 
     deleteTask: (id) => {
-        set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }));
+        set((state) => {
+            const newTasks = state.tasks.filter((t) => t.id !== id);
+            syncIfNeeded(newTasks);
+            return { tasks: newTasks };
+        });
         invoke('delete_task', { id }).catch(console.error);
     },
 
     moveTask: (taskId, newColumn) => {
-        set((state) => ({
-            tasks: state.tasks.map((t) =>
+        set((state) => {
+            const newTasks = state.tasks.map((t) =>
             t.id === taskId
             ? { ...t, column: newColumn, updatedAt: new Date().toISOString() }
             : t
-            ),
-        }));
+            );
+            syncIfNeeded(newTasks);
+            return { tasks: newTasks };
+        });
         const task = get().tasks.find((t) => t.id === taskId);
         if (task) invoke('save_task', { task: { ...task, column: newColumn } }).catch(console.error);
     },
 
     updateTask: (task) => {
-        set((state) => ({
-            tasks: state.tasks.map((t) => (t.id === task.id ? task : t)),
-        }));
+        set((state) => {
+            const newTasks = state.tasks.map((t) => (t.id === task.id ? task : t));
+            syncIfNeeded(newTasks);
+            return { tasks: newTasks };
+        });
         invoke('save_task', { task }).catch(console.error);
     },
 
@@ -90,14 +106,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
                                                            importTasks: (newTasks) => {
                                                                const currentTasks = get().tasks;
-
-                                                               // Fusion sans doublons : on garde les tâches existantes
-                                                               // et on ajoute uniquement celles dont l'ID n'existe pas encore
                                                                const existingIds = new Set(currentTasks.map((t) => t.id));
                                                                const toAdd = newTasks.filter((t) => !existingIds.has(t.id));
-
-                                                               // Pour les tâches qui existent déjà, on prend la version
-                                                               // la plus récente selon updatedAt
                                                                const merged = currentTasks.map((existing) => {
                                                                    const incoming = newTasks.find((t) => t.id === existing.id);
                                                                    if (!incoming) return existing;
@@ -105,11 +115,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
                                                                    ? incoming
                                                                    : existing;
                                                                });
-
                                                                const finalTasks = [...merged, ...toAdd];
                                                                set({ tasks: finalTasks });
-
-                                                               // Sauvegarde chaque tâche importée
+                                                               syncIfNeeded(finalTasks);
                                                                toAdd.forEach((task) => invoke('save_task', { task }).catch(console.error));
                                                            },
 }));
