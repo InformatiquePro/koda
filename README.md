@@ -3,8 +3,9 @@
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
 > ⚠️ Version actuelle : **v0.1.0 (Linux et android 15 et + uniquement)**  
-> 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.
-> Licence AGPL : Respecter-là !
+> 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.  
+> Tu veux build toi même ? Regarde comment faire [ICI](https://github.com/InformatiquePro/koda?tab=readme-ov-file#%EF%B8%8F-build-linuxandroid)  
+> Licence AGPL : Respecter-là !  
 
 ---
 
