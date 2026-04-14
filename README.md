@@ -23,10 +23,10 @@ Un systeme de glisser-déposer simple et intuitif.
 ---
 
 ### 🖥️ Mode Kiosk
-Un mode plein écran conçu pour les espaces publics, bureaux ou affichages dédiés.
+Un mode plein écran conçu pour les bureaux ou affichages dédiés.
 
 - Expérience immersive
-- Idéal pour bornes ou écrans fixes
+- Idéal pour écrans fixes
 
 ---
 
@@ -55,13 +55,11 @@ Le projet est en constante évolution.
 
 ### Prochaines plateformes :
 - 🪟 Windows
-- 🤖 Android  Arrive bientot : app sera lancé sur le pc, et fera un web-serveur syncro entre les 2.
+- 🤖 Android : lance dans la V0.3.0 avec le web-serveur
 
 ### Prochaines fonctionnalités :
 
-- Thèmes dynamiques
-- Améliorations du mode kiosk
-- connexion à des services extrernes 
+- Surprise !!
 
 ---
 ## Images
@@ -80,7 +78,7 @@ npm install
 npm run tauri build
 ```
 *Au bout de plusieurs build, je vous recommandes de faire ```rm -rf src-tauri/target/release/build``` pour éviter les erreurs.*
->Version APK Android abandonné. Déplacement de cette version en un serveur web, il n'est pas garantie que ça marche encore ce build, à éviter d'utiliser.
+>Version APK Android abandonné. Déplacement de cette version en un serveur web, il n'est pas garantie que ça marche encore pour ce build, à éviter d'utiliser.
 Pour le build android, il faut avoir configurer et installé android studio, avec le sdk cible installe.
 ```bash
 npm run tauri android init
