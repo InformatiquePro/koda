@@ -52,8 +52,13 @@ Le projet est en constante évolution.
 - connexion à des services extrernes 
 
 ---
+## Images
+<img width="1920" height="979" alt="image" src="https://github.com/user-attachments/assets/ce4eaa08-9904-4a11-9379-626829a43b6e" />
+<img width="462" height="400" alt="image" src="https://github.com/user-attachments/assets/6db3313d-2ded-4144-a0a6-d6fed48d9311" />
+<img width="462" height="453" alt="image" src="https://github.com/user-attachments/assets/ac19ff7c-f83e-4623-86a1-22b5abc12448" />
+<img width="269" height="311" alt="image" src="https://github.com/user-attachments/assets/17f655e7-c1b3-4f1f-a375-27a081a36e2e" />
 
-## ⚙️ Installation (Linux)
+## ⚙️ Build (Linux/Android)
 
 > Vous voulez build le projet ?
 > le build sera après dispo dans cette emplacement : /src-tauri/target/release/bundle/appimage_deb/data/usr/bin/
