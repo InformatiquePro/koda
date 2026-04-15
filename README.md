@@ -19,6 +19,7 @@ Koda est un logiciel moderne d’organisation personnelle et d’affichage intel
 Un systeme de glisser-déposer simple et intuitif.
 
 - Simple et efficace pour la productivité
+- Timer pour les tâches
 
 ---
 
@@ -66,6 +67,7 @@ Le projet est en constante évolution.
 <img width="1920" height="979" alt="image" src="https://github.com/user-attachments/assets/ce4eaa08-9904-4a11-9379-626829a43b6e" />
 <img width="462" height="400" alt="image" src="https://github.com/user-attachments/assets/6db3313d-2ded-4144-a0a6-d6fed48d9311" />
 <img width="508" height="576" alt="image" src="https://github.com/user-attachments/assets/20939495-7fca-4725-a4fa-dff871518d7f" />
+<img width="388" height="224" alt="image" src="https://github.com/user-attachments/assets/01fcf455-30b8-469d-94e2-618da6b6ff8f" />
 <img width="461" height="450" alt="image" src="https://github.com/user-attachments/assets/e6913024-15d1-48ad-b93f-ca7831a81f83" />
 <img width="269" height="311" alt="image" src="https://github.com/user-attachments/assets/17f655e7-c1b3-4f1f-a375-27a081a36e2e" />
 
