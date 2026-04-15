@@ -9,6 +9,7 @@
     "dialog:allow-open",
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
-    "fs:allow-app-write"
+    "fs:allow-app-write",
+    "shell:allow-open"
   ]
 }
