@@ -66,7 +66,7 @@ Le projet est en constante évolution.
 <img width="1920" height="979" alt="image" src="https://github.com/user-attachments/assets/ce4eaa08-9904-4a11-9379-626829a43b6e" />
 <img width="462" height="400" alt="image" src="https://github.com/user-attachments/assets/6db3313d-2ded-4144-a0a6-d6fed48d9311" />
 <img width="508" height="576" alt="image" src="https://github.com/user-attachments/assets/20939495-7fca-4725-a4fa-dff871518d7f" />
-<img width="462" height="453" alt="image" src="https://github.com/user-attachments/assets/ac19ff7c-f83e-4623-86a1-22b5abc12448" />
+<img width="461" height="450" alt="image" src="https://github.com/user-attachments/assets/e6913024-15d1-48ad-b93f-ca7831a81f83" />
 <img width="269" height="311" alt="image" src="https://github.com/user-attachments/assets/17f655e7-c1b3-4f1f-a375-27a081a36e2e" />
 
 ## ⚙️ Build (Linux/Android)
