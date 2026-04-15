@@ -18,11 +18,12 @@ export interface Task {
     priority: Priority;
     tags: string[];
     hasApi: boolean;
-    apiUrl?: string;        // pour l'api
-    apiMethod?: string;     // pour l'api
+    apiUrl?: string;
+    apiMethod?: string;
     attachments: string[];
     customActions: CustomAction[];
     pomodoroDuration?: number;
+    pomodoroStartedAt?: string;  // gestion timer
     createdAt: string;
     updatedAt: string;
 }
