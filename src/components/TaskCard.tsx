@@ -1,5 +1,6 @@
-// src/components/TaskCard.tsx 
+// src/components/TaskCard.tsx
 
+import TimerBadge from './TimerBadge';
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -153,6 +154,14 @@ export default function TaskCard({ task, columnColor }: Props) {
             </Badge>
         )}
         </Flex>
+
+        {/* Timer actif */}
+        {task.pomodoroStartedAt && task.pomodoroDuration && (
+            <TimerBadge
+            startedAt={task.pomodoroStartedAt}
+            durationSeconds={task.pomodoroDuration}
+            />
+        )}
 
         {/* Description */}
         {task.description && (
