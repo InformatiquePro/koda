@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Dialog, Flex, Text, Button, Separator, Badge } from '@radix-ui/themes';
+import { open as openUrl } from '@tauri-apps/plugin-shell';
 
 const VERSION = '0.3.1';
 const GITHUB = 'https://github.com/InformatiquePro/koda';
@@ -75,7 +76,7 @@ export default function AboutModal() {
         variant="soft"
         color="violet"
         style={{ width: '100%' }}
-        onClick={() => window.open(GITHUB, '_blank')}
+        onClick={() => openUrl(GITHUB)}
         >
         🐙 Voir sur GitHub
         </Button>
