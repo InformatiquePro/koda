@@ -55,6 +55,8 @@ Koda propose une interface :
 - Compatible nativement avec MacOS mais Apple force à avoir un mac pour build une app macos, je n'en ai pas, donc je ne peux pas fournir de build MacOS
 - Compatible nativement (je pense) avec Windows, mais c'est pénible à build car je suis sur Linux, donc je ferrai un build quand Koda deviendrat assez stable et riche en fonctionnalité
 
+--- 
+
 ## 🚧 Roadmap
 
 Le projet est en constante évolution.
