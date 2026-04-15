@@ -2,7 +2,7 @@
 
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
-> ⚠️ Version actuelle : **v0.3.1 (Linux et tout appareil qui a un navigateur web)**  
+> ⚠️ Version actuelle : **v0.4.0 (Linux et tout appareil qui a un navigateur web)**  
 > 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.  
 > Tu veux build toi même ? Regarde comment faire [ICI](https://github.com/InformatiquePro/koda?tab=readme-ov-file#%EF%B8%8F-build-linuxandroid)  
 > Licence AGPL : Respecter-là !  
@@ -49,6 +49,11 @@ Koda propose une interface :
 - Optimisée pour la clarté et la productivité
 
 ---
+## Compatibilité
+- Compatible Linux (Arch et Debian/Ubuntu)
+- Android (Via le WebServer depuis le linux)
+- Compatible nativement avec MacOS mais Apple force à avoir un mac pour build une app macos, je n'en ai pas, donc je ne peux pas fournir de build MacOS
+- Compatible nativement (je pense) avec Windows, mais c'est pénible à build car je suis sur Linux, donc je ferrai un build quand Koda deviendrat assez stable et riche en fonctionnalité
 
 ## 🚧 Roadmap
 
@@ -56,7 +61,7 @@ Le projet est en constante évolution.
 
 ### Prochaines plateformes :
 - 🪟 Windows
-- 🤖 Android : lance dans la V0.3.0 avec le web-serveur
+- 🤖 Android : dispo depuis la V0.3.0 avec le web-serveur
 
 ### Prochaines fonctionnalités :
 
