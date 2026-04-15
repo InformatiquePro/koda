@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, Flex, Text, Button, Separator, Badge } from '@radix-ui/themes';
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 
-const VERSION = '0.3.1';
+const VERSION = '0.4.0';
 const GITHUB = 'https://github.com/InformatiquePro/koda';
 
 export default function AboutModal() {
