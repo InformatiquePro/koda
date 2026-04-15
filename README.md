@@ -1,4 +1,4 @@
-# ⚡ Koda (v0.3.1)
+# ⚡ Koda (v0.4.0)
 
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
