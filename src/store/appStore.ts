@@ -15,6 +15,10 @@ interface AppStore {
     updateSettings: (partial: Partial<AppSettings>) => void;
     toggleSidebar: () => void;
     importTasks: (newTasks: Task[]) => void;
+    pendingTimerTaskId: string | null;
+    setPendingTimerTaskId: (id: string | null) => void;
+    startTimer: (taskId: string, seconds: number) => void;
+    stopTimer: (taskId: string) => void;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -85,6 +89,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
             syncIfNeeded(newTasks);
             return { tasks: newTasks };
         });
+
+        // Propose le timer si la tâche entre en EN COURS
+        if (newColumn === 'IN_PROGRESS') {
+            set({ pendingTimerTaskId: taskId });
+        }
+
+        // Stoppe le timer si la tâche quitte EN COURS
+        if (newColumn === 'BLOCKED' || newColumn === 'DONE') {
+            set((state) => ({
+                tasks: state.tasks.map((t) =>
+                t.id === taskId
+                ? { ...t, pomodoroDuration: undefined, pomodoroStartedAt: undefined }
+                : t
+                ),
+            }));
+        }
+
         const task = get().tasks.find((t) => t.id === taskId);
         if (task) invoke('save_task', { task: { ...task, column: newColumn } }).catch(console.error);
     },
@@ -101,6 +122,35 @@ export const useAppStore = create<AppStore>((set, get) => ({
     updateSettings: (partial) => {
         set((state) => ({ settings: { ...state.settings, ...partial } }));
     },
+
+    pendingTimerTaskId: null,
+
+    setPendingTimerTaskId: (id) => set({ pendingTimerTaskId: id }),
+
+                                                           startTimer: (taskId, seconds) => {
+                                                               set((state) => {
+                                                                   const newTasks = state.tasks.map((t) =>
+                                                                   t.id === taskId
+                                                                   ? { ...t, pomodoroDuration: seconds, pomodoroStartedAt: new Date().toISOString() }
+                                                                   : t
+                                                                   );
+                                                                   syncIfNeeded(newTasks);
+                                                                   return { tasks: newTasks, pendingTimerTaskId: null };
+                                                               });
+                                                           },
+
+                                                           stopTimer: (taskId) => {
+                                                               set((state) => {
+                                                                   const newTasks = state.tasks.map((t) =>
+                                                                   t.id === taskId
+                                                                   ? { ...t, pomodoroDuration: undefined, pomodoroStartedAt: undefined }
+                                                                   : t
+                                                                   );
+                                                                   syncIfNeeded(newTasks);
+                                                                   return { tasks: newTasks };
+                                                               });
+                                                           },
+
 
     toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
