@@ -63,3 +63,8 @@ body {
     height: 100vh;
     overflow: hidden;
 }
+/* Pour le timer */
+@keyframes pulse-red {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.5; }
+}
