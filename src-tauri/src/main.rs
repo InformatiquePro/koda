@@ -41,6 +41,8 @@ pub struct Task {
     pub created_at: String,
     #[serde(rename = "updatedAt")]
     pub updated_at: String,
+    #[serde(rename = "blockedReason")]
+    pub blocked_reason: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
