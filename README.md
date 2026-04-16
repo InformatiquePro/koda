@@ -5,13 +5,14 @@ Koda est un logiciel moderne d’organisation personnelle et d’affichage intel
 > ⚠️ Version actuelle : **v0.4.1 (Linux et tout appareil qui a un navigateur web)**  
 > 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.  
 > Tu veux build toi même ? Regarde comment faire [ICI](https://github.com/InformatiquePro/koda?tab=readme-ov-file#%EF%B8%8F-build-linuxandroid)  
-> Licence AGPL : Respecter-là !  
+> Licence AGPL : Respecter-là !
+> Tu veux voir à quoi ça ressemble ? [Regarde ces captures d'ecrans de Koda](  https://github.com/InformatiquePro/koda?tab=readme-ov-file#images)
 
 ---
 
 ## Comment utiliser ?
->Aller voir la section release pour récupérer les builds.  
->Je ne publie pas tout le temps de build android car c'est long à faire, mais vous pouvez compiler le projet vous même.
+>Aller voir la section release pour récupérer les builds, ou cliquer directement [ICI](https://github.com/InformatiquePro/koda/releases/latest).  
+
 
 ## ✨ Fonctionnalités actuelles
 
