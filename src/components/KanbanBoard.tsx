@@ -1,19 +1,19 @@
 // src/components/KanbanBoard.tsx
 
+import { useState, useRef } from 'react';
 import {
     DndContext,
     DragOverEvent,
+    DragStartEvent,
     rectIntersection,
     PointerSensor,
     useSensor,
     useSensors,
     DragOverlay,
-    DragStartEvent,
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { Box, Flex, Text, Badge, Button } from '@radix-ui/themes';
-import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import TaskCard from './TaskCard';
 import AddTaskModal from './AddTaskModal';
@@ -48,7 +48,10 @@ function DroppableColumn({ id, color, children }: { id: string; color: string; c
 
 export default function KanbanBoard() {
     const { tasks, moveTask } = useAppStore();
+    const triggerTimerIfNeeded = useAppStore((s) => s.triggerTimerIfNeeded);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const finalColumnRef = useRef<Column | null>(null);
+    const draggedTaskIdRef = useRef<string | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -59,6 +62,8 @@ export default function KanbanBoard() {
     function handleDragStart(event: DragStartEvent) {
         const task = tasks.find((t) => t.id === event.active.id);
         setActiveTask(task ?? null);
+        draggedTaskIdRef.current = event.active.id as string;
+        finalColumnRef.current = task?.column as Column ?? null;
     }
 
     function handleDragOver(event: DragOverEvent) {
@@ -68,25 +73,31 @@ export default function KanbanBoard() {
         const taskId = active.id as string;
         const overId = over.id as string;
 
-        // Si on survole une colonne directement
         const isColumn = COLUMNS.some((c) => c.id === overId);
         if (isColumn) {
             const currentTask = tasks.find((t) => t.id === taskId);
             if (currentTask && currentTask.column !== overId) {
+                finalColumnRef.current = overId as Column;
                 moveTask(taskId, overId as Column);
             }
             return;
         }
 
-        // Si on survole une carte → prend sa colonne
         const overTask = tasks.find((t) => t.id === overId);
         const currentTask = tasks.find((t) => t.id === taskId);
         if (overTask && currentTask && overTask.column !== currentTask.column) {
+            finalColumnRef.current = overTask.column as Column;
             moveTask(taskId, overTask.column as Column);
         }
     }
 
     function handleDragEnd() {
+        // Timer déclenché UNIQUEMENT au lâcher
+        if (draggedTaskIdRef.current && finalColumnRef.current) {
+            triggerTimerIfNeeded(draggedTaskIdRef.current, finalColumnRef.current);
+        }
+        draggedTaskIdRef.current = null;
+        finalColumnRef.current = null;
         setActiveTask(null);
     }
 
