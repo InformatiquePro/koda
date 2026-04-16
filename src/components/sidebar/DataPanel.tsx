@@ -3,6 +3,7 @@ import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { Task, AppSettings } from '../../types/koda';
 import AboutModal from './AboutModal';
+import ReportButton from './ReportButton';
 
 interface Props {
     tasks: Task[];
@@ -78,6 +79,7 @@ export default function DataPanel({ tasks, settings, importTasks, updateSettings
         <Button variant="soft" size="2" color="indigo" onClick={importJSON}>
         📥 Importer JSON
         </Button>
+        <ReportButton />
         <AboutModal />
         </Flex>
         </>
