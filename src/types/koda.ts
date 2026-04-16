@@ -20,6 +20,7 @@ export interface Task {
     hasApi: boolean;
     apiUrl?: string;
     apiMethod?: string;
+    blockedReason?: string;
     attachments: string[];
     customActions: CustomAction[];
     pomodoroDuration?: number;
