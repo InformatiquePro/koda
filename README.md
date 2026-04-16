@@ -1,8 +1,8 @@
-# ⚡ Koda (v0.4.1)
+# ⚡ Koda (v0.5.0)
 
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
-> ⚠️ Version actuelle : **v0.4.1 (Linux et tout appareil qui a un navigateur web)**  
+> ⚠️ Version actuelle : **v0.5.0 (Linux et tout appareil qui a un navigateur web)**  
 > 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.  
 > Tu veux build toi même ? Regarde comment faire [ICI](https://github.com/InformatiquePro/koda?tab=readme-ov-file#%EF%B8%8F-build-linuxandroid)  
 > Licence AGPL : Respecter-là !
@@ -21,6 +21,8 @@ Un systeme de glisser-déposer simple et intuitif.
 
 - Simple et efficace pour la productivité
 - Timer pour les tâches
+- Raison de bloquage pour mieux s'organiser
+- Rapport pour voir les statistiques
 
 ---
 
@@ -72,10 +74,13 @@ Le projet est en constante évolution.
 
 ---
 ## Images
-<img width="1920" height="985" alt="image" src="https://github.com/user-attachments/assets/0f1d5fa5-52d2-497d-9498-0cffbc7944e3" />
+<img width="1920" height="980" alt="image" src="https://github.com/user-attachments/assets/a2a98d86-c261-4a99-ba42-4dd5341da28d" />
 <img width="462" height="400" alt="image" src="https://github.com/user-attachments/assets/6db3313d-2ded-4144-a0a6-d6fed48d9311" />
 <img width="508" height="576" alt="image" src="https://github.com/user-attachments/assets/20939495-7fca-4725-a4fa-dff871518d7f" />
 <img width="388" height="224" alt="image" src="https://github.com/user-attachments/assets/01fcf455-30b8-469d-94e2-618da6b6ff8f" />
+<img width="406" height="248" alt="image" src="https://github.com/user-attachments/assets/ad22c156-c140-4fd8-96fd-8c249e55e376" />
+<img width="605" height="550" alt="image" src="https://github.com/user-attachments/assets/6c6a3c7c-a910-4d33-9d15-a8cb9b329819" />
+<img width="618" height="585" alt="image" src="https://github.com/user-attachments/assets/f0e01513-1ca2-463f-9227-23b3cf63488b" />
 <img width="461" height="450" alt="image" src="https://github.com/user-attachments/assets/e6913024-15d1-48ad-b93f-ca7831a81f83" />
 <img width="269" height="311" alt="image" src="https://github.com/user-attachments/assets/17f655e7-c1b3-4f1f-a375-27a081a36e2e" />
 
