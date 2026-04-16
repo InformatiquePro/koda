@@ -171,6 +171,25 @@ export default function TaskCard({ task, columnColor }: Props) {
             </Text>
         )}
 
+        {/* Raison du blocage */}
+        {task.column === 'BLOCKED' && task.blockedReason && (
+            <Flex
+            gap="1"
+            align="start"
+            px="2"
+            py="1"
+            style={{
+                background: 'rgba(239,68,68,0.1)',
+                                                             border: '1px solid rgba(239,68,68,0.3)',
+                                                             borderRadius: 8,
+            }}
+            >
+            <Text size="1" style={{ color: '#ef4444' }}>
+            🔴 <Text weight="bold">Bloqué : </Text>{task.blockedReason}
+            </Text>
+            </Flex>
+        )}
+
         {/* Feedback inline après action */}
         {feedback && (
             <Callout.Root
