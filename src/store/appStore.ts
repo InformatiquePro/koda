@@ -7,15 +7,16 @@ interface AppStore {
     tasks: Task[];
     settings: AppSettings;
     sidebarOpen: boolean;
+    pendingTimerTaskId: string | null;
     fetchTasks: () => Promise<void>;
     addTask: (title: string, column?: Column, description?: string, priority?: Priority) => void;
     deleteTask: (id: string) => void;
     moveTask: (taskId: string, newColumn: Column) => void;
+    triggerTimerIfNeeded: (taskId: string, newColumn: Column) => void;
     updateTask: (task: Task) => void;
     updateSettings: (partial: Partial<AppSettings>) => void;
     toggleSidebar: () => void;
     importTasks: (newTasks: Task[]) => void;
-    pendingTimerTaskId: string | null;
     setPendingTimerTaskId: (id: string | null) => void;
     startTimer: (taskId: string, seconds: number) => void;
     stopTimer: (taskId: string) => void;
@@ -38,6 +39,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     tasks: [],
     settings: DEFAULT_SETTINGS,
     sidebarOpen: true,
+    pendingTimerTaskId: null,
 
     fetchTasks: async () => {
         try {
@@ -90,12 +92,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             return { tasks: newTasks };
         });
 
-        // Propose le timer si la tâche entre en EN COURS
-        if (newColumn === 'IN_PROGRESS') {
-            set({ pendingTimerTaskId: taskId });
-        }
-
-        // Stoppe le timer si la tâche quitte EN COURS
+        // Stoppe le timer si BLOCKED ou DONE
         if (newColumn === 'BLOCKED' || newColumn === 'DONE') {
             set((state) => ({
                 tasks: state.tasks.map((t) =>
@@ -108,6 +105,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
         const task = get().tasks.find((t) => t.id === taskId);
         if (task) invoke('save_task', { task: { ...task, column: newColumn } }).catch(console.error);
+    },
+
+    // Déclenche la modale timer — appelé uniquement dans onDragEnd
+    triggerTimerIfNeeded: (taskId, newColumn) => {
+        if (newColumn === 'IN_PROGRESS') {
+            set({ pendingTimerTaskId: taskId });
+        }
     },
 
     updateTask: (task) => {
@@ -123,9 +127,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set((state) => ({ settings: { ...state.settings, ...partial } }));
     },
 
-    pendingTimerTaskId: null,
+    toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
-    setPendingTimerTaskId: (id) => set({ pendingTimerTaskId: id }),
+                                                           setPendingTimerTaskId: (id) => set({ pendingTimerTaskId: id }),
 
                                                            startTimer: (taskId, seconds) => {
                                                                set((state) => {
@@ -150,9 +154,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
                                                                    return { tasks: newTasks };
                                                                });
                                                            },
-
-
-    toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
                                                            importTasks: (newTasks) => {
                                                                const currentTasks = get().tasks;
