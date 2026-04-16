@@ -20,6 +20,9 @@ interface AppStore {
     setPendingTimerTaskId: (id: string | null) => void;
     startTimer: (taskId: string, seconds: number) => void;
     stopTimer: (taskId: string) => void;
+    pendingBlockedTaskId: string | null;
+    setPendingBlockedTaskId: (id: string | null) => void;
+    confirmBlocked: (taskId: string, reason: string) => void;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -40,6 +43,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
     settings: DEFAULT_SETTINGS,
     sidebarOpen: true,
     pendingTimerTaskId: null,
+    pendingBlockedTaskId: null,
+
+    setPendingBlockedTaskId: (id) => set({ pendingBlockedTaskId: id }),
+
+                                                           confirmBlocked: (taskId, reason) => {
+                                                               set((state) => {
+                                                                   const newTasks = state.tasks.map((t) =>
+                                                                   t.id === taskId
+                                                                   ? { ...t, blockedReason: reason || undefined, updatedAt: new Date().toISOString() }
+                                                                   : t
+                                                                   );
+                                                                   syncIfNeeded(newTasks);
+                                                                   return { tasks: newTasks, pendingBlockedTaskId: null };
+                                                               });
+                                                               const task = get().tasks.find((t) => t.id === taskId);
+                                                               if (task) invoke('save_task', { task }).catch(console.error);
+                                                           },
 
     fetchTasks: async () => {
         try {
@@ -85,7 +105,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set((state) => {
             const newTasks = state.tasks.map((t) =>
             t.id === taskId
-            ? { ...t, column: newColumn, updatedAt: new Date().toISOString() }
+            ? {
+                ...t,
+                column: newColumn,
+                updatedAt: new Date().toISOString(),
+                                             // Efface la raison si la tâche quitte BLOCKED
+                                             blockedReason: newColumn !== 'BLOCKED' ? undefined : t.blockedReason,
+            }
             : t
             );
             syncIfNeeded(newTasks);
@@ -107,10 +133,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
         if (task) invoke('save_task', { task: { ...task, column: newColumn } }).catch(console.error);
     },
 
-    // Déclenche la modale timer — appelé uniquement dans onDragEnd
+    // Déclenche la modale timer + le pouruqoi du bloque — appelé uniquement dans onDragEnd
     triggerTimerIfNeeded: (taskId, newColumn) => {
         if (newColumn === 'IN_PROGRESS') {
             set({ pendingTimerTaskId: taskId });
+        }
+        if (newColumn === 'BLOCKED') {
+            set({ pendingBlockedTaskId: taskId });
         }
     },
 
