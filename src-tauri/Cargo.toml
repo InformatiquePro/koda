@@ -1,6 +1,6 @@
 [package]
 name = "koda"
-version = "0.5.1"
+version = "0.6.0"
 description = "KODA c'est l'organisation améliorée :)"
 authors = ["Charles-Elie"]
 edition = "2021"
