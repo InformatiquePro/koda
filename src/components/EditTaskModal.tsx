@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import {
     Dialog, Flex, Text, TextField, TextArea,
-    Select, Button, Switch, Badge, IconButton, Box, Separator,
+    Select, Button, Switch, Badge, IconButton,
+    Box, Separator,
 } from '@radix-ui/themes';
 import { useAppStore } from '../store/appStore';
-import { Task, Column, Priority, CustomAction } from '../types/koda';
+import { Task, Column, Priority, CustomAction, SubTask } from '../types/koda';
 import { v4 as uuidv4 } from 'uuid';
+import SubTaskEditor from './subtasks/SubTaskEditor';
 
 interface Props {
     task: Task;
@@ -15,17 +17,19 @@ interface Props {
 
 export default function EditTaskModal({ task }: Props) {
     const { updateTask } = useAppStore();
-    const [open, setOpen] = useState(false);
-    const [title, setTitle] = useState(task.title);
-    const [description, setDescription] = useState(task.description ?? '');
-    const [column, setColumn] = useState<Column>(task.column as Column);
-    const [priority, setPriority] = useState<Priority>(task.priority as Priority);
-    const [hasApi, setHasApi] = useState(task.hasApi);
-    const [apiUrl, setApiUrl] = useState(task.apiUrl ?? '');
-    const [apiMethod, setApiMethod] = useState(task.apiMethod ?? 'POST');
-    const [customActions, setCustomActions] = useState<CustomAction[]>(task.customActions);
-    const enableApiSupport = useAppStore((s) => s.settings.enableApiSupport);
+    const enableApiSupport    = useAppStore((s) => s.settings.enableApiSupport);
     const enableCustomActions = useAppStore((s) => s.settings.enableCustomActions);
+
+    const [open, setOpen]               = useState(false);
+    const [title, setTitle]             = useState(task.title);
+    const [description, setDescription] = useState(task.description ?? '');
+    const [column, setColumn]           = useState<Column>(task.column as Column);
+    const [priority, setPriority]       = useState<Priority>(task.priority as Priority);
+    const [hasApi, setHasApi]           = useState(task.hasApi);
+    const [apiUrl, setApiUrl]           = useState(task.apiUrl ?? '');
+    const [apiMethod, setApiMethod]     = useState(task.apiMethod ?? 'POST');
+    const [customActions, setCustomActions] = useState<CustomAction[]>(task.customActions);
+    const [subTasks, setSubTasks]       = useState<SubTask[]>(task.subTasks ?? []);
 
     useEffect(() => {
         if (open) {
@@ -37,40 +41,39 @@ export default function EditTaskModal({ task }: Props) {
             setApiUrl(task.apiUrl ?? '');
             setApiMethod(task.apiMethod ?? 'POST');
             setCustomActions(task.customActions);
+            setSubTasks(task.subTasks ?? []);
         }
     }, [open, task]);
 
     function handleSave() {
         if (!title.trim()) return;
-
-        // Met à jour la colonne de toutes les actions pour suivre la tâche
         const updatedActions = customActions.map((a) => ({
             ...a,
             triggerColumn: column,
         }));
-
         updateTask({
             ...task,
-            title: title.trim(),
-                   description: description.trim() || undefined,
+            title:         title.trim(),
+                   description:   description.trim() || undefined,
                    column,
                    priority,
                    hasApi,
-                   apiUrl: hasApi ? apiUrl.trim() : undefined,
-                   apiMethod: hasApi ? apiMethod : undefined,
+                   apiUrl:        hasApi ? apiUrl.trim() : undefined,
+                   apiMethod:     hasApi ? apiMethod : undefined,
                    customActions: updatedActions,
-                   updatedAt: new Date().toISOString(),
+                   subTasks,                          // ← inclus ici
+                   updatedAt:     new Date().toISOString(),
         });
         setOpen(false);
     }
 
     function addCustomAction() {
         const newAction: CustomAction = {
-            id: uuidv4(),
-            label: 'Nouvelle action',
-            triggerColumn: column, // suit automatiquement la colonne de la tâche
-            actionType: 'webhook',
-            payload: '',
+            id:            uuidv4(),
+            label:         'Nouvelle action',
+            triggerColumn: column,
+            actionType:    'webhook',
+            payload:       '',
         };
         setCustomActions((prev) => [...prev, newAction]);
     }
@@ -89,22 +92,12 @@ export default function EditTaskModal({ task }: Props) {
         <>
         <button
         onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            setOpen(true);
-        }}
+        onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(true); }}
         style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px',
-            borderRadius: '4px',
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: '14px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: '4px', borderRadius: '4px',
+            color: 'rgba(255,255,255,0.7)', fontSize: '14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
         title="Modifier"
         >
@@ -135,8 +128,7 @@ export default function EditTaskModal({ task }: Props) {
         <Flex direction="column" gap="1">
         <Text size="2" color="gray">Titre *</Text>
         <TextField.Root
-        size="3"
-        value={title}
+        size="3" value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSave()}
         autoFocus
@@ -146,12 +138,8 @@ export default function EditTaskModal({ task }: Props) {
         {/* Description */}
         <Flex direction="column" gap="1">
         <Text size="2" color="gray">Description</Text>
-        <TextArea
-        size="2"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        rows={3}
-        />
+        <TextArea size="2" value={description}
+        onChange={(e) => setDescription(e.target.value)} rows={3} />
         </Flex>
 
         {/* Colonne + Priorité */}
@@ -168,7 +156,6 @@ export default function EditTaskModal({ task }: Props) {
         </Select.Content>
         </Select.Root>
         </Flex>
-
         <Flex direction="column" gap="1" style={{ flex: 1 }}>
         <Text size="2" color="gray">Priorité</Text>
         <Select.Root value={priority} onValueChange={(v) => setPriority(v as Priority)}>
@@ -182,33 +169,26 @@ export default function EditTaskModal({ task }: Props) {
         </Select.Root>
         </Flex>
         </Flex>
-        {/* ─── API (indépendant des actions contextuelles) ─── */}
+
+        {/* ─── Sous-tâches ─── */}
+        <Separator size="4" />
+        <SubTaskEditor subTasks={subTasks} onChange={setSubTasks} />
+
+        {/* ─── API ─── */}
         {enableApiSupport && (
             <>
             <Separator size="4" />
             <Flex direction="column" gap="2">
             <Flex align="center" gap="2">
-            <Text size="2" weight="bold" style={{ color: 'var(--accent-9)' }}>
-            🔌 API
-            </Text>
-            <Switch
-            size="1"
-            checked={hasApi}
-            onCheckedChange={setHasApi}
-            />
-            <Text size="1" color="gray">
-            {hasApi ? 'Activée' : 'Désactivée'}
-            </Text>
+            <Text size="2" weight="bold" style={{ color: 'var(--accent-9)' }}>🔌 API</Text>
+            <Switch size="1" checked={hasApi} onCheckedChange={setHasApi} />
+            <Text size="1" color="gray">{hasApi ? 'Activée' : 'Désactivée'}</Text>
             </Flex>
-
             {hasApi && (
                 <Flex direction="column" gap="2">
-                <TextField.Root
-                size="2"
-                value={apiUrl}
+                <TextField.Root size="2" value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="https://api.example.com/endpoint"
-                />
+                placeholder="https://api.example.com/endpoint" />
                 <Select.Root value={apiMethod} onValueChange={setApiMethod}>
                 <Select.Trigger />
                 <Select.Content>
@@ -223,7 +203,7 @@ export default function EditTaskModal({ task }: Props) {
             </>
         )}
 
-        {/* ─── Actions contextuelles (indépendant de l'API) ─── */}
+        {/* ─── Actions contextuelles ─── */}
         {enableCustomActions && (
             <>
             <Separator size="4" />
@@ -231,64 +211,29 @@ export default function EditTaskModal({ task }: Props) {
             <Text size="2" weight="bold" style={{ color: 'var(--accent-9)' }}>
             ⚡ Actions contextuelles
             </Text>
-
-            <Box
-            style={{
-                border: '1px solid var(--glass-border)',
-                                 borderRadius: '10px',
-                                 overflow: 'hidden',
-            }}
-            >
-            <Flex
-            align="center"
-            justify="between"
-            px="3"
-            py="2"
-            style={{ background: 'rgba(255,255,255,0.03)' }}
-            >
-            <Text size="2">⚡ Actions contextuelles</Text>
+            <Box style={{ border: '1px solid var(--glass-border)', borderRadius: '10px', overflow: 'hidden' }}>
+            <Flex align="center" justify="between" px="3" py="2"
+            style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <Text size="2">⚡ Actions</Text>
             <Badge color="gray" size="1">{customActions.length}</Badge>
             </Flex>
-
-            <Flex direction="column" gap="2" px="3" py="3" style={{ borderTop: '1px solid var(--glass-border)' }}>
+            <Flex direction="column" gap="2" px="3" py="3"
+            style={{ borderTop: '1px solid var(--glass-border)' }}>
             <Text size="1" color="gray" style={{ opacity: 0.7 }}>
             Ces boutons apparaissent sur la carte dans la colonne choisie.
             </Text>
-
             {customActions.map((action) => (
-                <Flex
-                key={action.id}
-                direction="column"
-                gap="2"
-                p="2"
-                style={{
-                    background: 'rgba(255,255,255,0.03)',
-                                            borderRadius: 8,
-                                            border: '1px solid var(--glass-border)',
-                }}
-                >
+                <Flex key={action.id} direction="column" gap="2" p="2"
+                style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid var(--glass-border)' }}>
                 <Flex gap="2" align="center">
-                <TextField.Root
-                size="1"
-                value={action.label}
+                <TextField.Root size="1" value={action.label}
                 onChange={(e) => updateAction(action.id, 'label', e.target.value)}
-                placeholder="Label du bouton"
-                style={{ flex: 1 }}
-                />
-                <IconButton
-                size="1"
-                variant="ghost"
-                color="red"
-                onClick={() => removeAction(action.id)}
-                >
-                ✕
-                </IconButton>
+                placeholder="Label du bouton" style={{ flex: 1 }} />
+                <IconButton size="1" variant="ghost" color="red"
+                onClick={() => removeAction(action.id)}>✕</IconButton>
                 </Flex>
-
-                <Select.Root
-                value={action.actionType}
-                onValueChange={(v) => updateAction(action.id, 'actionType', v)}
-                >
+                <Select.Root value={action.actionType}
+                onValueChange={(v) => updateAction(action.id, 'actionType', v)}>
                 <Select.Trigger />
                 <Select.Content>
                 <Select.Item value="webhook">🔗 Webhook</Select.Item>
@@ -296,24 +241,14 @@ export default function EditTaskModal({ task }: Props) {
                 <Select.Item value="archive">📦 Archiver</Select.Item>
                 </Select.Content>
                 </Select.Root>
-
                 {action.actionType === 'webhook' && (
-                    <TextField.Root
-                    size="1"
-                    value={action.payload ?? ''}
+                    <TextField.Root size="1" value={action.payload ?? ''}
                     onChange={(e) => updateAction(action.id, 'payload', e.target.value)}
-                    placeholder="https://discord.com/api/webhooks/..."
-                    />
+                    placeholder="https://discord.com/api/webhooks/..." />
                 )}
                 </Flex>
             ))}
-
-            <Button
-            variant="soft"
-            size="1"
-            onClick={addCustomAction}
-            style={{ marginTop: 4 }}
-            >
+            <Button variant="soft" size="1" onClick={addCustomAction} style={{ marginTop: 4 }}>
             ＋ Ajouter une action
             </Button>
             </Flex>
@@ -322,16 +257,11 @@ export default function EditTaskModal({ task }: Props) {
             </>
         )}
 
-        {/* Boutons save/cancel */}
+        {/* Boutons */}
         <Flex gap="2" justify="end" mt="2">
-        <Button variant="soft" color="gray" onClick={() => setOpen(false)}>
-        Annuler
-        </Button>
-        <Button
-        onClick={handleSave}
-        disabled={!title.trim()}
-        style={{ background: 'var(--accent-9)' }}
-        >
+        <Button variant="soft" color="gray" onClick={() => setOpen(false)}>Annuler</Button>
+        <Button onClick={handleSave} disabled={!title.trim()}
+        style={{ background: 'var(--accent-9)' }}>
         Sauvegarder
         </Button>
         </Flex>
