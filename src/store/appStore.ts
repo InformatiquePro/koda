@@ -1,15 +1,23 @@
 import { create } from 'zustand';
-import { Task, AppSettings, Column, Priority } from '../types/koda';
+import { Task, AppSettings, Column, Priority, CustomAction } from '../types/koda';
 import { invoke } from '@tauri-apps/api/core';
 import { v4 as uuidv4 } from 'uuid';
+
+interface TaskExtras {
+    hasApi?: boolean;
+    apiUrl?: string;
+    apiMethod?: string;
+    customActions?: CustomAction[];
+}
 
 interface AppStore {
     tasks: Task[];
     settings: AppSettings;
     sidebarOpen: boolean;
     pendingTimerTaskId: string | null;
+    pendingBlockedTaskId: string | null;
     fetchTasks: () => Promise<void>;
-    addTask: (title: string, column?: Column, description?: string, priority?: Priority) => void;
+    addTask: (title: string, column?: Column, description?: string, priority?: Priority, extras?: TaskExtras) => void;
     deleteTask: (id: string) => void;
     moveTask: (taskId: string, newColumn: Column) => void;
     triggerTimerIfNeeded: (taskId: string, newColumn: Column) => void;
@@ -20,7 +28,6 @@ interface AppStore {
     setPendingTimerTaskId: (id: string | null) => void;
     startTimer: (taskId: string, seconds: number) => void;
     stopTimer: (taskId: string) => void;
-    pendingBlockedTaskId: string | null;
     setPendingBlockedTaskId: (id: string | null) => void;
     confirmBlocked: (taskId: string, reason: string) => void;
 }
@@ -32,6 +39,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     weatherCity: 'Quimper',
     weatherCityId: undefined,
     theme: 'dark',
+    enableApiSupport: false,
+    enableCustomActions: false,
 };
 
 const syncIfNeeded = (updatedTasks: Task[]) => {
@@ -61,102 +70,98 @@ export const useAppStore = create<AppStore>((set, get) => ({
                                                                if (task) invoke('save_task', { task }).catch(console.error);
                                                            },
 
-    fetchTasks: async () => {
-        try {
-            const tasks = await invoke<Task[]>('get_tasks');
-            set({ tasks });
-        } catch {
-            set({ tasks: [] });
-        }
-    },
+                                                           fetchTasks: async () => {
+                                                               try {
+                                                                   const tasks = await invoke<Task[]>('get_tasks');
+                                                                   set({ tasks });
+                                                               } catch {
+                                                                   set({ tasks: [] });
+                                                               }
+                                                           },
 
-    addTask: (title, column = 'TODO', description = '', priority = 'medium') => {
-        const newTask: Task = {
-            id: uuidv4(),
+                                                           // ← seule fonction modifiée
+                                                           addTask: (title, column = 'TODO', description = '', priority = 'medium', extras = {}) => {
+                                                               const newTask: Task = {
+                                                                   id:            uuidv4(),
                                                            title,
-                                                           description: description || undefined,
+                                                           description:   description || undefined,
                                                            column,
-                                                           priority: priority as Priority,
-                                                           tags: [],
-                                                           hasApi: false,
-                                                           attachments: [],
-                                                           customActions: [],
-                                                           createdAt: new Date().toISOString(),
-                                                           updatedAt: new Date().toISOString(),
-        };
-        set((state) => {
-            const newTasks = [...state.tasks, newTask];
-            syncIfNeeded(newTasks);
-            return { tasks: newTasks };
-        });
-        invoke('save_task', { task: newTask }).catch(console.error);
-    },
+                                                           priority:      priority as Priority,
+                                                           tags:          [],
+                                                           hasApi:        extras.hasApi        ?? false,
+                                                           apiUrl:        extras.apiUrl,
+                                                           apiMethod:     extras.apiMethod,
+                                                           customActions: extras.customActions ?? [],
+                                                           attachments:   [],
+                                                           createdAt:     new Date().toISOString(),
+                                                           updatedAt:     new Date().toISOString(),
+                                                               };
+                                                               set((state) => {
+                                                                   const newTasks = [...state.tasks, newTask];
+                                                                   syncIfNeeded(newTasks);
+                                                                   return { tasks: newTasks };
+                                                               });
+                                                               invoke('save_task', { task: newTask }).catch(console.error);
+                                                           },
 
-    deleteTask: (id) => {
-        set((state) => {
-            const newTasks = state.tasks.filter((t) => t.id !== id);
-            syncIfNeeded(newTasks);
-            return { tasks: newTasks };
-        });
-        invoke('delete_task', { id }).catch(console.error);
-    },
+                                                           deleteTask: (id) => {
+                                                               set((state) => {
+                                                                   const newTasks = state.tasks.filter((t) => t.id !== id);
+                                                                   syncIfNeeded(newTasks);
+                                                                   return { tasks: newTasks };
+                                                               });
+                                                               invoke('delete_task', { id }).catch(console.error);
+                                                           },
 
-    moveTask: (taskId, newColumn) => {
-        set((state) => {
-            const newTasks = state.tasks.map((t) =>
-            t.id === taskId
-            ? {
-                ...t,
-                column: newColumn,
-                updatedAt: new Date().toISOString(),
-                                             // Efface la raison si la tâche quitte BLOCKED
-                                             blockedReason: newColumn !== 'BLOCKED' ? undefined : t.blockedReason,
-            }
-            : t
-            );
-            syncIfNeeded(newTasks);
-            return { tasks: newTasks };
-        });
+                                                           moveTask: (taskId, newColumn) => {
+                                                               set((state) => {
+                                                                   const newTasks = state.tasks.map((t) =>
+                                                                   t.id === taskId
+                                                                   ? {
+                                                                       ...t,
+                                                                       column: newColumn,
+                                                                       updatedAt: new Date().toISOString(),
+                                                                                                    blockedReason: newColumn !== 'BLOCKED' ? undefined : t.blockedReason,
+                                                                   }
+                                                                   : t
+                                                                   );
+                                                                   syncIfNeeded(newTasks);
+                                                                   return { tasks: newTasks };
+                                                               });
 
-        // Stoppe le timer si BLOCKED ou DONE
-        if (newColumn === 'BLOCKED' || newColumn === 'DONE') {
-            set((state) => ({
-                tasks: state.tasks.map((t) =>
-                t.id === taskId
-                ? { ...t, pomodoroDuration: undefined, pomodoroStartedAt: undefined }
-                : t
-                ),
-            }));
-        }
+                                                               if (newColumn === 'BLOCKED' || newColumn === 'DONE') {
+                                                                   set((state) => ({
+                                                                       tasks: state.tasks.map((t) =>
+                                                                       t.id === taskId
+                                                                       ? { ...t, pomodoroDuration: undefined, pomodoroStartedAt: undefined }
+                                                                       : t
+                                                                       ),
+                                                                   }));
+                                                               }
 
-        const task = get().tasks.find((t) => t.id === taskId);
-        if (task) invoke('save_task', { task: { ...task, column: newColumn } }).catch(console.error);
-    },
+                                                               const task = get().tasks.find((t) => t.id === taskId);
+                                                               if (task) invoke('save_task', { task: { ...task, column: newColumn } }).catch(console.error);
+                                                           },
 
-    // Déclenche la modale timer + le pouruqoi du bloque — appelé uniquement dans onDragEnd
-    triggerTimerIfNeeded: (taskId, newColumn) => {
-        if (newColumn === 'IN_PROGRESS') {
-            set({ pendingTimerTaskId: taskId });
-        }
-        if (newColumn === 'BLOCKED') {
-            set({ pendingBlockedTaskId: taskId });
-        }
-    },
+                                                           triggerTimerIfNeeded: (taskId, newColumn) => {
+                                                               if (newColumn === 'IN_PROGRESS') set({ pendingTimerTaskId: taskId });
+                                                               if (newColumn === 'BLOCKED')     set({ pendingBlockedTaskId: taskId });
+                                                           },
 
-    updateTask: (task) => {
-        set((state) => {
-            const newTasks = state.tasks.map((t) => (t.id === task.id ? task : t));
-            syncIfNeeded(newTasks);
-            return { tasks: newTasks };
-        });
-        invoke('save_task', { task }).catch(console.error);
-    },
+                                                           updateTask: (task) => {
+                                                               set((state) => {
+                                                                   const newTasks = state.tasks.map((t) => (t.id === task.id ? task : t));
+                                                                   syncIfNeeded(newTasks);
+                                                                   return { tasks: newTasks };
+                                                               });
+                                                               invoke('save_task', { task }).catch(console.error);
+                                                           },
 
-    updateSettings: (partial) => {
-        set((state) => ({ settings: { ...state.settings, ...partial } }));
-    },
+                                                           updateSettings: (partial) => {
+                                                               set((state) => ({ settings: { ...state.settings, ...partial } }));
+                                                           },
 
-    toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+                                                           toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
                                                            setPendingTimerTaskId: (id) => set({ pendingTimerTaskId: id }),
 
@@ -186,14 +191,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
                                                            importTasks: (newTasks) => {
                                                                const currentTasks = get().tasks;
-                                                               const existingIds = new Set(currentTasks.map((t) => t.id));
-                                                               const toAdd = newTasks.filter((t) => !existingIds.has(t.id));
-                                                               const merged = currentTasks.map((existing) => {
+                                                               const existingIds  = new Set(currentTasks.map((t) => t.id));
+                                                               const toAdd        = newTasks.filter((t) => !existingIds.has(t.id));
+                                                               const merged       = currentTasks.map((existing) => {
                                                                    const incoming = newTasks.find((t) => t.id === existing.id);
                                                                    if (!incoming) return existing;
-                                                                   return new Date(incoming.updatedAt) > new Date(existing.updatedAt)
-                                                                   ? incoming
-                                                                   : existing;
+                                                                   return new Date(incoming.updatedAt) > new Date(existing.updatedAt) ? incoming : existing;
                                                                });
                                                                const finalTasks = [...merged, ...toAdd];
                                                                set({ tasks: finalTasks });
