@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, Flex, Text, Button, Separator, Badge } from '@radix-ui/themes';
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 
-const VERSION = '0.5.0';
+const VERSION = '0.5.1';
 const GITHUB = 'https://github.com/InformatiquePro/koda';
 
 export default function AboutModal() {
@@ -65,6 +65,7 @@ export default function AboutModal() {
         <InfoRow label="Licence"   value="AGPL" />
         <InfoRow label="Auteur"    value="Charles-Elie" />
         <InfoRow label="Framework" value="Tauri 2 + React + Rust" />
+        <InfoRow label="Branche" value="Build Custom" />
         </Flex>
 
         <Separator size="4" mb="4" />
