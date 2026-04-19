@@ -56,6 +56,10 @@ pub struct AppSettings {
     #[serde(rename = "weatherCity")]
     pub weather_city: Option<String>,
     pub theme: String,
+    #[serde(rename = "enableApiSupport", default)]
+    pub enable_api_support: bool,
+    #[serde(rename = "enableCustomActions", default)]
+    pub enable_custom_actions: bool,
 }
 
 #[tauri::command]
@@ -100,6 +104,8 @@ async fn get_settings() -> Result<AppSettings, String> {
        weather_api_key: None,
        weather_city: Some("Vannes".to_string()),
        theme: "dark".to_string(),
+       enable_api_support: false,
+       enable_custom_actions: false,
     })
 }
 
