@@ -10,6 +10,13 @@ export interface CustomAction {
     payload?: string;
 }
 
+export interface SubTask {
+    id: string;
+    label: string;
+    status: 'pending' | 'done' | 'blocked';
+    blockedReason?: string;
+}
+
 export interface Task {
     id: string;
     title: string;
@@ -27,6 +34,7 @@ export interface Task {
     pomodoroStartedAt?: string;  // gestion timer
     createdAt: string;
     updatedAt: string;
+    subTasks?: SubTask[];
 }
 
 export interface AppSettings {
