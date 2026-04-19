@@ -1,16 +1,12 @@
 import { useState } from 'react';
 import {
-    Dialog,
-    Flex,
-    Text,
-    TextField,
-    TextArea,
-    Select,
-    Button,
-    Badge,
+    Dialog, Flex, Text, TextField, TextArea,
+    Select, Button, Badge, Switch, IconButton,
+    Box, Separator,
 } from '@radix-ui/themes';
 import { useAppStore } from '../store/appStore';
-import { Column, Priority } from '../types/koda';
+import { Column, Priority, CustomAction } from '../types/koda';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
     defaultColumn?: Column;
@@ -19,23 +15,69 @@ interface Props {
 
 export default function AddTaskModal({ defaultColumn = 'TODO', trigger }: Props) {
     const { addTask } = useAppStore();
-    const [open, setOpen] = useState(false);
-    const [title, setTitle] = useState('');
+    const enableApiSupport    = useAppStore((s) => s.settings.enableApiSupport);
+    const enableCustomActions = useAppStore((s) => s.settings.enableCustomActions);
+
+    const [open, setOpen]               = useState(false);
+    const [title, setTitle]             = useState('');
     const [description, setDescription] = useState('');
-    const [column, setColumn] = useState<Column>(defaultColumn);
-    const [priority, setPriority] = useState<Priority>('medium');
+    const [column, setColumn]           = useState<Column>(defaultColumn);
+    const [priority, setPriority]       = useState<Priority>('medium');
+
+    // API
+    const [hasApi, setHasApi]         = useState(false);
+    const [apiUrl, setApiUrl]         = useState('');
+    const [apiMethod, setApiMethod]   = useState('POST');
+
+    // Actions contextuelles
+    const [customActions, setCustomActions] = useState<CustomAction[]>([]);
+
+    function reset() {
+        setTitle('');
+        setDescription('');
+        setColumn(defaultColumn);
+        setPriority('medium');
+        setHasApi(false);
+        setApiUrl('');
+        setApiMethod('POST');
+        setCustomActions([]);
+    }
 
     function handleSubmit() {
         if (!title.trim()) return;
-        addTask(title.trim(), column, description.trim(), priority);
-        setTitle('');
-        setDescription('');
-        setPriority('medium');
+        addTask(title.trim(), column, description.trim(), priority, {
+            hasApi,
+            apiUrl:        hasApi ? apiUrl.trim() : undefined,
+                apiMethod:     hasApi ? apiMethod : undefined,
+                customActions,
+        });
+        reset();
         setOpen(false);
     }
 
+    function addCustomAction() {
+        const newAction: CustomAction = {
+            id:            uuidv4(),
+            label:         'Nouvelle action',
+            triggerColumn: column,
+            actionType:    'webhook',
+            payload:       '',
+        };
+        setCustomActions((prev) => [...prev, newAction]);
+    }
+
+    function updateAction(id: string, field: keyof CustomAction, value: string) {
+        setCustomActions((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, [field]: value } : a))
+        );
+    }
+
+    function removeAction(id: string) {
+        setCustomActions((prev) => prev.filter((a) => a.id !== id));
+    }
+
     return (
-        <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Root open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
         <Dialog.Trigger>{trigger}</Dialog.Trigger>
 
         <Dialog.Content
@@ -45,6 +87,8 @@ export default function AddTaskModal({ defaultColumn = 'TODO', trigger }: Props)
             border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '16px',
             maxWidth: 480,
+            maxHeight: '85vh',
+            overflowY: 'auto',
         }}
         >
         <Dialog.Title>
@@ -54,6 +98,7 @@ export default function AddTaskModal({ defaultColumn = 'TODO', trigger }: Props)
         </Dialog.Title>
 
         <Flex direction="column" gap="4" mt="4">
+
         {/* Titre */}
         <Flex direction="column" gap="1">
         <Text size="2" color="gray">Titre *</Text>
@@ -79,7 +124,7 @@ export default function AddTaskModal({ defaultColumn = 'TODO', trigger }: Props)
         />
         </Flex>
 
-        {/* Colonne + Priorité côte à côte */}
+        {/* Colonne + Priorité */}
         <Flex gap="3">
         <Flex direction="column" gap="1" style={{ flex: 1 }}>
         <Text size="2" color="gray">Colonne</Text>
@@ -123,6 +168,122 @@ export default function AddTaskModal({ defaultColumn = 'TODO', trigger }: Props)
         </Badge>
         </Flex>
 
+        {/* ─── API ─── */}
+        {enableApiSupport && (
+            <>
+            <Separator size="4" />
+            <Flex direction="column" gap="2">
+            <Flex align="center" gap="2">
+            <Text size="2" weight="bold" style={{ color: 'var(--accent-9)' }}>
+            🔌 API
+            </Text>
+            <Switch size="1" checked={hasApi} onCheckedChange={setHasApi} />
+            <Text size="1" color="gray">{hasApi ? 'Activée' : 'Désactivée'}</Text>
+            </Flex>
+
+            {hasApi && (
+                <Flex direction="column" gap="2">
+                <TextField.Root
+                size="2"
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                placeholder="https://api.example.com/endpoint"
+                />
+                <Select.Root value={apiMethod} onValueChange={setApiMethod}>
+                <Select.Trigger />
+                <Select.Content>
+                {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => (
+                    <Select.Item key={m} value={m}>{m}</Select.Item>
+                ))}
+                </Select.Content>
+                </Select.Root>
+                </Flex>
+            )}
+            </Flex>
+            </>
+        )}
+
+        {/* ─── Actions contextuelles ─── */}
+        {enableCustomActions && (
+            <>
+            <Separator size="4" />
+            <Flex direction="column" gap="2">
+            <Text size="2" weight="bold" style={{ color: 'var(--accent-9)' }}>
+            ⚡ Actions contextuelles
+            </Text>
+
+            <Box style={{ border: '1px solid var(--glass-border)', borderRadius: '10px', overflow: 'hidden' }}>
+            <Flex
+            align="center" justify="between" px="3" py="2"
+            style={{ background: 'rgba(255,255,255,0.03)' }}
+            >
+            <Text size="2">⚡ Actions</Text>
+            <Badge color="gray" size="1">{customActions.length}</Badge>
+            </Flex>
+
+            <Flex direction="column" gap="2" px="3" py="3"
+            style={{ borderTop: '1px solid var(--glass-border)' }}
+            >
+            <Text size="1" color="gray" style={{ opacity: 0.7 }}>
+            Ces boutons apparaissent sur la carte dans la colonne choisie.
+            </Text>
+
+            {customActions.map((action) => (
+                <Flex
+                key={action.id} direction="column" gap="2" p="2"
+                style={{
+                    background: 'rgba(255,255,255,0.03)',
+                                            borderRadius: 8,
+                                            border: '1px solid var(--glass-border)',
+                }}
+                >
+                <Flex gap="2" align="center">
+                <TextField.Root
+                size="1"
+                value={action.label}
+                onChange={(e) => updateAction(action.id, 'label', e.target.value)}
+                placeholder="Label du bouton"
+                style={{ flex: 1 }}
+                />
+                <IconButton size="1" variant="ghost" color="red"
+                onClick={() => removeAction(action.id)}
+                >
+                ✕
+                </IconButton>
+                </Flex>
+
+                <Select.Root
+                value={action.actionType}
+                onValueChange={(v) => updateAction(action.id, 'actionType', v)}
+                >
+                <Select.Trigger />
+                <Select.Content>
+                <Select.Item value="webhook">🔗 Webhook</Select.Item>
+                <Select.Item value="notify">🔔 Notification</Select.Item>
+                <Select.Item value="archive">📦 Archiver</Select.Item>
+                </Select.Content>
+                </Select.Root>
+
+                {action.actionType === 'webhook' && (
+                    <TextField.Root
+                    size="1"
+                    value={action.payload ?? ''}
+                    onChange={(e) => updateAction(action.id, 'payload', e.target.value)}
+                    placeholder="https://discord.com/api/webhooks/..."
+                    />
+                )}
+                </Flex>
+            ))}
+
+            <Button variant="soft" size="1" onClick={addCustomAction} style={{ marginTop: 4 }}>
+            ＋ Ajouter une action
+            </Button>
+            </Flex>
+            </Box>
+            </Flex>
+            </>
+        )}
+
         {/* Boutons */}
         <Flex gap="2" justify="end" mt="2">
         <Dialog.Close>
@@ -136,6 +297,7 @@ export default function AddTaskModal({ defaultColumn = 'TODO', trigger }: Props)
         Créer la tâche
         </Button>
         </Flex>
+
         </Flex>
         </Dialog.Content>
         </Dialog.Root>
