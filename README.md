@@ -1,8 +1,8 @@
-# ⚡ Koda (v0.5.1)
+# ⚡ Koda (v0.6.0)
 
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
-> ⚠️ Version actuelle : **v0.5.1 (Linux et tout appareil qui a un navigateur web)**  
+> ⚠️ Version actuelle : **v0.6.0 (Linux et tout appareil qui a un navigateur web)**  
 > 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.  
 > Tu veux build toi même ? Regarde comment faire [ICI](https://github.com/InformatiquePro/koda?tab=readme-ov-file#%EF%B8%8F-build-linuxandroid)  
 > Licence AGPL : Respecter-là !
@@ -24,6 +24,7 @@ Un systeme de glisser-déposer simple et intuitif.
 - Raison de bloquage pour mieux s'organiser
 - Rapport pour voir les statistiques
 - API + actions contextuelles liées à des services externes pour les utilisateurs avancés.
+- Système de sous tâches pour réaliser une tâche en plusieurs étapes par exemple
 
 ---
 
@@ -75,13 +76,23 @@ Le projet est en constante évolution.
 
 ---
 ## Images
-<img width="1920" height="980" alt="image" src="https://github.com/user-attachments/assets/a2a98d86-c261-4a99-ba42-4dd5341da28d" />
-<img width="462" height="400" alt="image" src="https://github.com/user-attachments/assets/6db3313d-2ded-4144-a0a6-d6fed48d9311" />
+<img width="1920" height="988" alt="image" src="https://github.com/user-attachments/assets/ae638cc2-c59c-47a1-b1ed-1d7b7b5fffda" />
+
+<img width="453" height="494" alt="image" src="https://github.com/user-attachments/assets/e7cd5c8f-48da-423a-a91b-03e262d950b3" />
+
 <img width="508" height="576" alt="image" src="https://github.com/user-attachments/assets/20939495-7fca-4725-a4fa-dff871518d7f" />
+
 <img width="388" height="224" alt="image" src="https://github.com/user-attachments/assets/01fcf455-30b8-469d-94e2-618da6b6ff8f" />
+
 <img width="406" height="248" alt="image" src="https://github.com/user-attachments/assets/ad22c156-c140-4fd8-96fd-8c249e55e376" />
-<img width="605" height="550" alt="image" src="https://github.com/user-attachments/assets/6c6a3c7c-a910-4d33-9d15-a8cb9b329819" />
-<img width="618" height="585" alt="image" src="https://github.com/user-attachments/assets/f0e01513-1ca2-463f-9227-23b3cf63488b" />
+
+<img width="600" height="588" alt="image" src="https://github.com/user-attachments/assets/cc669ff4-2b85-4706-a243-3999b2e63f79" />
+
+<img width="600" height="588" alt="image" src="https://github.com/user-attachments/assets/1c2deff2-def3-485b-ab7e-990a35a6c2cf" />
+
+<img width="600" height="113" alt="image" src="https://github.com/user-attachments/assets/5c363615-9ade-4d77-bd6b-a68f22f3bcff" />
+
+
 <img width="461" height="450" alt="image" src="https://github.com/user-attachments/assets/e6913024-15d1-48ad-b93f-ca7831a81f83" />
 <img width="460" height="674" alt="image" src="https://github.com/user-attachments/assets/ec10ce14-08ba-4e12-9bb6-6205ccc3457d" />
 
