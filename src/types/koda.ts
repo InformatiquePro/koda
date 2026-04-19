@@ -36,6 +36,8 @@ export interface AppSettings {
     weatherCity?: string;
     weatherCityId?: string;   // id ville
     theme: 'dark' | 'light';
+    enableApiSupport: boolean; // activer ou desactiver le mode api
+    enableCustomActions: boolean; // activer ou desactiver le mode des actions contextuelles
 }
 
 export interface Trigger {
