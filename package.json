@@ -1,7 +1,7 @@
 {
   "name": "koda",
   "private": true,
-  "version": "0.5.1",
+  "version": "0.6.0-custom-build",
   "type": "module",
   "scripts": {
     "dev": "vite",
