@@ -18,6 +18,15 @@ pub struct CustomAction {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SubTask {
+    pub id: String,
+    pub label: String,
+    pub status: String,
+    #[serde(rename = "blockedReason")]
+    pub blocked_reason: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Task {
     pub id: String,
     pub title: String,
@@ -43,6 +52,8 @@ pub struct Task {
     pub updated_at: String,
     #[serde(rename = "blockedReason")]
     pub blocked_reason: Option<String>,
+    #[serde(rename = "subTasks", default)]
+    pub sub_tasks: Vec<SubTask>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
