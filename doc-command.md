@@ -1,3 +1,6 @@
+> [!IMPORTANT]  
+> Cette documentation est migrée ici : https://charles-elie.fr/wiki/command-koda
+
 >Applicable à partir de la V0.7.0 qui n'est pas encore sortie
 # ⌨️ Koda — Palette de Commandes (`Ctrl+K`)
 
