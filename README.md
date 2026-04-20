@@ -1,5 +1,7 @@
 # ⚡ Koda (v0.6.1)
 
+>Doc en cours de migration sur mon site, dispo ici : https://charles-elie.fr/wiki/info-koda
+
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
 > ⚠️ Version actuelle : **v0.6.1 (Linux et tout appareil qui a un navigateur web)**  
