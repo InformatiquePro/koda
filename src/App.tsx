@@ -12,6 +12,7 @@ import KioskMode from './components/KioskMode';
 import Sidebar from './components/Sidebar';
 import TimerModal from './components/TimerModal';
 import BlockedReasonModal from './components/BlockedReasonModal';
+import DevBanner from './components/DevBanner';
 
 export default function App() {
   const {
@@ -39,6 +40,7 @@ export default function App() {
   if (settings.kioskMode) {
     return (
       <Theme appearance="dark" accentColor="violet" radius="large" scaling="110%">
+      <DevBanner />
       <KioskMode />
       </Theme>
     );
@@ -46,6 +48,7 @@ export default function App() {
 
   return (
     <Theme appearance="dark" accentColor="violet" radius="large">
+    <DevBanner />
     <div className="koda-layout">
     <Sidebar />
     <KanbanBoard />
