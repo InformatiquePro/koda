@@ -2,14 +2,20 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability par défaut pour Koda",
-  "windows": ["main"],
+  "windows": ["main", "command-palette"],
   "permissions": [
     "core:default",
+    "core:window:allow-hide",
+    "core:event:allow-emit-to",
     "dialog:allow-save",
     "dialog:allow-open",
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
     "fs:allow-app-write",
-    "shell:allow-open"
+    "shell:allow-open",
+    "notification:default",
+    "notification:allow-notify",
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission"
   ]
 }
