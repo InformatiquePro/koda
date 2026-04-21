@@ -1,14 +1,15 @@
-# ⚡ Koda (v0.6.1)
+# ⚡ Koda (v0.7)
 
 >Doc en cours de migration sur mon site, dispo ici : https://charles-elie.fr/wiki/info-koda
 
 Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
 
-> ⚠️ Version actuelle : **v0.6.1 (Linux et tout appareil qui a un navigateur web)**  
+> ⚠️ Version actuelle : **v0.7 (Linux et tout appareil qui a un navigateur web)**  
 > 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.  
 > Tu veux build toi même ? Regarde comment faire [ICI](https://github.com/InformatiquePro/koda?tab=readme-ov-file#%EF%B8%8F-build-linuxandroid)  
 > Licence AGPL : Respecter-là !
 > Tu veux voir à quoi ça ressemble ? [Regarde ces captures d'ecrans de Koda](  https://github.com/InformatiquePro/koda?tab=readme-ov-file#images)
+> Tu veux acceder à la documentation sur la fonction commande ? Regarde la doc : https://charles-elie.fr/wiki/command-koda
 
 ---
 
@@ -27,6 +28,7 @@ Un systeme de glisser-déposer simple et intuitif.
 - Rapport pour voir les statistiques
 - API + actions contextuelles liées à des services externes pour les utilisateurs avancés.
 - Système de sous tâches pour réaliser une tâche en plusieurs étapes par exemple
+- Commande pour pouvoir utiliser simplement Koda avec le clavier, avec integration parfaite entre application.
 
 ---
 

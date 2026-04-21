@@ -62,3 +62,4 @@ sign_apk.txt
 
 # update local
 src/components/sidebar/AboutModal.tsx
+package-lock.json
