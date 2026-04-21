@@ -1,5 +1,8 @@
+// src/store/appStore.ts
+
+
 import { create } from 'zustand';
-import { Task, AppSettings, Column, Priority, CustomAction } from '../types/koda';
+import { Task, AppSettings, Column, Priority, CustomAction, SubTask } from '../types/koda';
 import { invoke } from '@tauri-apps/api/core';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -8,6 +11,7 @@ interface TaskExtras {
     apiUrl?: string;
     apiMethod?: string;
     customActions?: CustomAction[];
+    subTasks?: SubTask[];
 }
 
 interface AppStore {
@@ -41,6 +45,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     theme: 'dark',
     enableApiSupport: false,
     enableCustomActions: false,
+    globalCommandShortcut: false,
 };
 
 const syncIfNeeded = (updatedTasks: Task[]) => {
@@ -92,6 +97,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                                                            apiUrl:        extras.apiUrl,
                                                            apiMethod:     extras.apiMethod,
                                                            customActions: extras.customActions ?? [],
+                                                           subTasks:      extras.subTasks      ?? [],
                                                            attachments:   [],
                                                            createdAt:     new Date().toISOString(),
                                                            updatedAt:     new Date().toISOString(),

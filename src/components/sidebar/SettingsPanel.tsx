@@ -6,6 +6,7 @@ import {
 import { AppSettings } from '../../types/koda';
 import ApiSupportToggle from '../settings/ApiSupportToggle';
 import CustomActionsToggle from '../settings/CustomActionsToggle';
+import GlobalShortcutToggle from '../settings/GlobalShortcutToggle';
 
 interface Props {
     settings: AppSettings;
@@ -158,6 +159,8 @@ export default function SettingsPanel({ settings, updateSettings }: Props) {
 
         <ApiSupportToggle />
         <CustomActionsToggle />
+        <Separator size="4" />
+        <GlobalShortcutToggle />
 
         </Flex>
         </ScrollArea>
