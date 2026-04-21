@@ -1,6 +1,6 @@
 [package]
 name = "koda"
-version = "0.6.1"
+version = "0.7.0"
 description = "KODA c'est l'organisation améliorée :)"
 authors = ["Charles-Elie"]
 edition = "2021"
@@ -13,7 +13,7 @@ edition = "2021"
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "koda_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
-tauri = { version = "2", features = ["protocol-asset"] }
+
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-notification = "2"
 tauri-plugin-fs = "2"
@@ -26,12 +26,13 @@ uuid = { version = "1", features = ["v4"] }
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 [dependencies]
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-sql = { version = "2.4.0", features = ["sqlite"] }
 tauri-plugin-notification = "2.3.3"
+tauri-plugin-global-shortcut = "2"
 tauri-plugin-fs = "2.5.0"
 tauri-plugin-http = "2.5.8"
 uuid = { version = "1.23.0", features = ["v4"] }
@@ -43,3 +44,4 @@ axum = { version = "0.7", features = ["ws"] }
 tower-http = { version = "0.5", features = ["cors"] }
 once_cell = "1"
 tauri-plugin-shell = "2.3.5"
+tauri-plugin-process = "2.3.1"
