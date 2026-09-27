@@ -1,0 +1,82 @@
+# Dependencies and frontend build output
+/node_modules/
+/dist/
+/dist-ssr/
+/.vite/
+*.tsbuildinfo
+
+# Logs and test reports
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+/coverage/
+
+# Environment files and local configuration
+.env
+.env.*
+!.env.example
+*.local
+
+# Rust and Tauri build output
+/target/
+/src-tauri/target/
+**/*.rs.bk
+/src-tauri/gen/schemas/
+
+# Android/Gradle generated files
+/src-tauri/gen/android/.gradle/
+/src-tauri/gen/android/**/build/
+/src-tauri/gen/android/local.properties
+/src-tauri/gen/android/**/.tauri/
+/src-tauri/gen/android/**/.cxx/
+/src-tauri/gen/android/**/.externalNativeBuild/
+
+# Release packages belong in GitHub Releases, not in the repository
+*.AppImage
+*.deb
+*.rpm
+*.apk
+*.aab
+*.idsig
+
+# Signing keys and signing configuration
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+key.properties
+signing.properties
+/sign_apk.txt
+
+# Native build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Local application data
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Editors
+/.vscode/*
+!/.vscode/extensions.json
+/.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating systems
+.DS_Store
+Thumbs.db
+desktop.ini

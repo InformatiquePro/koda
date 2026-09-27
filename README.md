@@ -1,0 +1,124 @@
+# ⚡ Koda (v0.7)
+
+>Doc en cours de migration sur mon site, dispo ici : https://docs.charles-elie.fr/info-koda
+
+Koda est un logiciel moderne d’organisation personnelle et d’affichage intelligent, conçu pour évoluer constamment et s’adapter à différents usages.
+
+> ⚠️ Version actuelle : **v0.7 (Linux et tout appareil qui a un navigateur web)**  
+> 🚧 En développement actif — de nombreuses fonctionnalités arrivent bientôt. Des fonctionnalités peuvent ne pas être fonctionnelle ou en developpement.  
+> Tu veux build toi même ? Regarde comment faire [ICI](https://github.com/InformatiquePro/koda?tab=readme-ov-file#%EF%B8%8F-build-linuxandroid)  
+> Licence AGPL : Respecter-là !
+> Tu veux voir à quoi ça ressemble ? [Regarde ces captures d'ecrans de Koda](  https://github.com/InformatiquePro/koda?tab=readme-ov-file#images)
+> Tu veux acceder à la documentation sur la fonction commande ? Regarde la doc : https://docs.charles-elie.fr/command-koda
+
+---
+
+## Comment utiliser ?
+>Aller voir la section release pour récupérer les builds, ou cliquer directement [ICI](https://github.com/InformatiquePro/koda/releases/latest).  
+
+
+## ✨ Fonctionnalités actuelles
+
+### 🖥️ Gestion des tâches de manières efficace
+Un systeme de glisser-déposer simple et intuitif.
+
+- Simple et efficace pour la productivité
+- Timer pour les tâches
+- Raison de bloquage pour mieux s'organiser
+- Rapport pour voir les statistiques
+- API + actions contextuelles liées à des services externes pour les utilisateurs avancés.
+- Système de sous tâches pour réaliser une tâche en plusieurs étapes par exemple
+- Commande pour pouvoir utiliser simplement Koda avec le clavier, avec integration parfaite entre application.
+
+---
+
+### 🖥️ Mode Kiosk
+Un mode plein écran conçu pour les bureaux ou affichages dédiés.
+
+- Expérience immersive
+- Idéal pour écrans fixes
+
+---
+
+### 🌤️ Mode Info (Météo + Heure)
+Un affichage simple et élégant pour consulter rapidement les informations essentielles :
+
+- Heure en temps réel
+- Météo actuelle
+- Design minimaliste et lisible
+
+---
+
+### 🎨 Interface moderne
+Koda propose une interface :
+
+- Fluide et esthétique
+- Inspirée des designs modernes
+- Pensée pour une utilisation intuitive
+- Optimisée pour la clarté et la productivité
+
+---
+## Compatibilité
+- Compatible Linux (Arch et Debian/Ubuntu)
+- Android (Via le WebServer depuis le linux)
+- Compatible nativement avec MacOS mais Apple force à avoir un mac pour build une app macos, je n'en ai pas, donc je ne peux pas fournir de build MacOS
+- Compatible nativement (je pense) avec Windows, mais c'est pénible à build car je suis sur Linux, donc je ferrai un build quand Koda deviendrat assez stable et riche en fonctionnalité
+
+--- 
+
+## 🚧 Roadmap
+
+Le projet est en constante évolution.
+
+### Prochaines plateformes :
+- 🪟 Windows
+- 🤖 Android : dispo depuis la V0.3.0 avec le web-serveur
+
+### Prochaines fonctionnalités :
+
+- Surprise !!
+
+---
+## Images
+<img width="1920" height="988" alt="image" src="https://github.com/user-attachments/assets/ae638cc2-c59c-47a1-b1ed-1d7b7b5fffda" />
+
+<img width="453" height="494" alt="image" src="https://github.com/user-attachments/assets/e7cd5c8f-48da-423a-a91b-03e262d950b3" />
+
+<img width="508" height="576" alt="image" src="https://github.com/user-attachments/assets/20939495-7fca-4725-a4fa-dff871518d7f" />
+
+<img width="388" height="224" alt="image" src="https://github.com/user-attachments/assets/01fcf455-30b8-469d-94e2-618da6b6ff8f" />
+
+<img width="406" height="248" alt="image" src="https://github.com/user-attachments/assets/ad22c156-c140-4fd8-96fd-8c249e55e376" />
+
+<img width="600" height="588" alt="image" src="https://github.com/user-attachments/assets/cc669ff4-2b85-4706-a243-3999b2e63f79" />
+
+<img width="600" height="588" alt="image" src="https://github.com/user-attachments/assets/1c2deff2-def3-485b-ab7e-990a35a6c2cf" />
+
+<img width="600" height="113" alt="image" src="https://github.com/user-attachments/assets/5c363615-9ade-4d77-bd6b-a68f22f3bcff" />
+
+
+<img width="461" height="450" alt="image" src="https://github.com/user-attachments/assets/e6913024-15d1-48ad-b93f-ca7831a81f83" />
+<img width="460" height="674" alt="image" src="https://github.com/user-attachments/assets/ec10ce14-08ba-4e12-9bb6-6205ccc3457d" />
+
+## ⚙️ Build (Linux/Android)
+
+> Vous voulez build le projet ?
+> le build sera après dispo dans cette emplacement : /src-tauri/target/release/bundle/appimage_deb/data/usr/bin/
+```bash
+git clone https://github.com/InformatiquePro/koda && cd koda
+npm install
+npm run tauri build
+```
+*Au bout de plusieurs build, je vous recommandes de faire ```rm -rf src-tauri/target/release/build``` pour éviter les erreurs.*
+>Version APK Android abandonné. Déplacement de cette version en un serveur web, il n'est pas garantie que ça marche encore pour ce build, à éviter d'utiliser.
+Pour le build android, il faut avoir configurer et installé android studio, avec le sdk cible installe.
+```bash
+npm run tauri android init
+npm run tauri android build
+```
+Noubliez pas de signer l'apk sinon votre appareil refusera de l'installer.  
+Astuce : si vous êtes sur Linux, il est probable que les outils zipalign et apksigner nécéssaire pour signer l'apk ne sois pas disponnible alors que tout est bien installé.  
+Pour corriger cela lancer ces commandes en adaptant à votre distribution linux/chemin d'accès aux SDK :
+```bash
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools | tail -1)

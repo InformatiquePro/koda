@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# linuxdeploy-plugin-gtk searches the reported gdk-pixbuf libdir recursively.
+# On Arch this can accidentally include private VMware libraries under
+# /usr/lib/vmware, so expose a clean, temporary view of the system libraries.
+if [ "$1" = "--variable=libdir" ]; then
+    case "$2" in
+        gdk-pixbuf-2.0|gobject-2.0|gio-2.0|librsvg-2.0|pango|pangocairo|pangoft2)
+            koda_lib_dir="${TMPDIR:-/tmp}/koda-appimage-gtk-libs"
+            mkdir -p "$koda_lib_dir"
+            for library in \
+                /usr/lib/libgdk_pixbuf-*.so* \
+                /usr/lib/libgobject-*.so* \
+                /usr/lib/libgio-*.so* \
+                /usr/lib/librsvg-*.so* \
+                /usr/lib/libpango-*.so* \
+                /usr/lib/libpangocairo-*.so* \
+                /usr/lib/libpangoft2-*.so*
+            do
+                if [ -e "$library" ]; then
+                    ln -sf "$library" "$koda_lib_dir/$(basename "$library")"
+                fi
+            done
+            printf '%s\n' "$koda_lib_dir"
+            exit 0
+            ;;
+    esac
+fi
+
+exec /usr/bin/pkgconf "$@"
