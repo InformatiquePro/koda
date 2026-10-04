@@ -13,11 +13,12 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
-import { Box, Flex, Text, Badge, Button } from '@radix-ui/themes';
+import { Box, Flex, Text, Badge, Button, Dialog, TextField } from '@radix-ui/themes';
 import { useAppStore } from '../store/appStore';
 import TaskCard from './TaskCard';
 import AddTaskModal from './AddTaskModal';
 import { Task, Column } from '../types/koda';
+import { addDays, formatDay, toDateKey, todayKey } from '../utils/dates';
 
 const COLUMNS: { id: Column; label: string; color: string }[] = [
     { id: 'TODO',        label: 'À FAIRE',  color: 'var(--col-todo)' },
@@ -47,8 +48,16 @@ function DroppableColumn({ id, color, children }: { id: string; color: string; c
 }
 
 export default function KanbanBoard() {
-    const { tasks, moveTask, setPendingTimerTaskId, setPendingBlockedTaskId } = useAppStore();
+    const {
+        tasks, settings, moveTask, setPendingTimerTaskId, setPendingBlockedTaskId,
+        syncCalendar, agendaSyncing,
+    } = useAppStore();
     const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const [selectedDay, setSelectedDay] = useState(todayKey());
+    const [syncMessage, setSyncMessage] = useState<string | null>(null);
+    const [showOverdueTasks, setShowOverdueTasks] = useState(false);
+    const [doneHistoryOpen, setDoneHistoryOpen] = useState(false);
+    const [doneHistoryDay, setDoneHistoryDay] = useState(todayKey());
     const originalColumnRef = useRef<Column | null>(null);
     const finalColumnRef = useRef<Column | null>(null);
     const draggedTaskIdRef = useRef<string | null>(null);
@@ -58,6 +67,52 @@ export default function KanbanBoard() {
             activationConstraint: { distance: 8 },
         })
     );
+
+    async function handleSync() {
+        setSyncMessage(null);
+        try {
+            const count = await syncCalendar();
+            setSyncMessage(`${count} événement${count > 1 ? 's' : ''}`);
+        } catch {
+            setSyncMessage('Échec de la synchronisation');
+        }
+    }
+
+    function tasksForColumn(column: Column): Task[] {
+        return tasks
+            .filter((task) => task.column === column)
+            .filter((task) => {
+                if (!settings.agendaEnabled) return true;
+                if (column === 'TODO' && task.scheduledFor) {
+                    const taskDay = toDateKey(task.scheduledFor);
+                    return taskDay === selectedDay || (showOverdueTasks && taskDay !== null && taskDay < todayKey());
+                }
+                if (column === 'DONE') {
+                    return toDateKey(task.completedAt ?? task.updatedAt) === selectedDay;
+                }
+                return true;
+            })
+            .sort((left, right) => {
+                if (column === 'TODO') {
+                    if (!left.scheduledFor) return 1;
+                    if (!right.scheduledFor) return -1;
+                    return left.scheduledFor.localeCompare(right.scheduledFor);
+                }
+                if (column === 'DONE') {
+                    return (right.completedAt ?? right.updatedAt).localeCompare(left.completedAt ?? left.updatedAt);
+                }
+                return right.updatedAt.localeCompare(left.updatedAt);
+            });
+    }
+
+    const overdueAgendaTasks = tasks.filter((task) => {
+        const taskDay = toDateKey(task.scheduledFor);
+        return task.column === 'TODO' && taskDay !== null && taskDay < todayKey();
+    });
+    const doneHistoryTasks = tasks
+        .filter((task) => task.column === 'DONE')
+        .filter((task) => toDateKey(task.completedAt ?? task.updatedAt) === doneHistoryDay)
+        .sort((left, right) => (right.completedAt ?? right.updatedAt).localeCompare(left.completedAt ?? left.updatedAt));
 
     function handleDragStart(event: DragStartEvent) {
         const task = tasks.find((t) => t.id === event.active.id);
@@ -139,6 +194,33 @@ export default function KanbanBoard() {
         />
         </Flex>
 
+        {settings.agendaEnabled && (
+            <Flex
+            align="center"
+            justify="between"
+            gap="3"
+            px="4"
+            py="2"
+            wrap="wrap"
+            style={{ borderBottom: '1px solid var(--glass-border)', background: 'rgba(99,102,241,0.08)' }}
+            >
+            <Flex align="center" gap="2">
+            <Button size="1" variant="soft" onClick={() => setSelectedDay(addDays(selectedDay, -1))}>← Jour précédent</Button>
+            <Button size="1" variant="outline" onClick={() => setSelectedDay(todayKey())}>Aujourd’hui</Button>
+            <Button size="1" variant="soft" onClick={() => setSelectedDay(addDays(selectedDay, 1))}>Jour suivant →</Button>
+            </Flex>
+            <Text size="2" weight="bold" style={{ textTransform: 'capitalize', color: '#c4b5fd' }}>
+            📅 {formatDay(selectedDay)}
+            </Text>
+            <Flex align="center" gap="2">
+            {syncMessage && <Text size="1" color="gray">{syncMessage}</Text>}
+            <Button size="1" color="violet" disabled={agendaSyncing} onClick={() => void handleSync()}>
+            {agendaSyncing ? 'Synchronisation…' : '↻ Synchroniser'}
+            </Button>
+            </Flex>
+            </Flex>
+        )}
+
         {/* Board */}
         <DndContext
         sensors={sensors}
@@ -150,7 +232,7 @@ export default function KanbanBoard() {
         >
         <Flex gap="4" p="4" style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden' }}>
         {COLUMNS.map((col) => {
-            const colTasks = tasks.filter((t: Task) => t.column === col.id);
+            const colTasks = tasksForColumn(col.id);
             return (
                 <Box
                 key={col.id}
@@ -172,10 +254,43 @@ export default function KanbanBoard() {
                 <Flex align="center" justify="between" mb="3" style={{ flexShrink: 0 }}>
                 <Flex align="center" gap="2">
                 <Box style={{ width: 10, height: 10, borderRadius: '50%', background: col.color }} />
+                <Flex direction="column" gap="1">
                 <Text weight="bold" size="2" style={{ color: col.color }}>{col.label}</Text>
+                {settings.agendaEnabled && (col.id === 'TODO' || col.id === 'DONE') && (
+                    <Text size="1" color="gray" style={{ textTransform: 'capitalize' }}>
+                    {col.id === 'TODO' ? 'Prévu' : 'Terminé'} · {formatDay(selectedDay, 'short')}
+                    </Text>
+                )}
+                </Flex>
                 </Flex>
                 <Badge color="gray" variant="soft">{colTasks.length}</Badge>
                 </Flex>
+
+                {settings.agendaEnabled && col.id === 'TODO' && overdueAgendaTasks.length > 0 && (
+                    <Button
+                    size="1"
+                    variant={showOverdueTasks ? 'solid' : 'soft'}
+                    color="orange"
+                    mb="2"
+                    onClick={() => setShowOverdueTasks((visible) => !visible)}
+                    >
+                    {showOverdueTasks
+                        ? 'Masquer les tâches précédentes'
+                        : `Afficher tâches jours précédents non faites (${overdueAgendaTasks.length})`}
+                    </Button>
+                )}
+
+                {settings.agendaEnabled && col.id === 'DONE' && (
+                    <Button
+                    size="1"
+                    variant="soft"
+                    color="green"
+                    mb="2"
+                    onClick={() => setDoneHistoryOpen(true)}
+                    >
+                    Voir tâches terminées d’un autre jour
+                    </Button>
+                )}
 
                 {/* Zone droppable */}
                 <SortableContext
@@ -184,6 +299,11 @@ export default function KanbanBoard() {
                 >
                 <DroppableColumn id={col.id} color={col.color}>
                 <Flex direction="column" gap="2">
+                {colTasks.length === 0 && settings.agendaEnabled && (col.id === 'TODO' || col.id === 'DONE') && (
+                    <Text size="1" color="gray" align="center" style={{ padding: '16px 0' }}>
+                    Rien pour ce jour.
+                    </Text>
+                )}
                 {colTasks.map((task: Task) => (
                     <TaskCard key={task.id} task={task} columnColor={col.color} />
                 ))}
@@ -227,6 +347,40 @@ export default function KanbanBoard() {
         </DragOverlay>
 
         </DndContext>
+
+        <Dialog.Root open={doneHistoryOpen} onOpenChange={setDoneHistoryOpen}>
+        <Dialog.Content maxWidth="520px">
+        <Dialog.Title>Tâches terminées</Dialog.Title>
+        <Dialog.Description>
+        Choisis une date pour consulter les tâches finalisées ce jour-là.
+        </Dialog.Description>
+        <Flex direction="column" gap="3" mt="4">
+        <TextField.Root
+        type="date"
+        value={doneHistoryDay}
+        onChange={(event) => setDoneHistoryDay(event.target.value)}
+        />
+        <Text size="2" color="gray" style={{ textTransform: 'capitalize' }}>
+        {formatDay(doneHistoryDay)} · {doneHistoryTasks.length} tâche{doneHistoryTasks.length > 1 ? 's' : ''}
+        </Text>
+        <Flex direction="column" gap="2" style={{ maxHeight: '45vh', overflowY: 'auto' }}>
+        {doneHistoryTasks.length === 0 ? (
+            <Text size="2" color="gray" align="center" style={{ padding: '24px 0' }}>
+            Aucune tâche terminée ce jour-là.
+            </Text>
+        ) : doneHistoryTasks.map((task) => (
+            <Box key={task.id} p="3" style={{ background: 'rgba(34,197,94,0.08)', borderRadius: 8 }}>
+            <Text size="2" weight="bold">✓ {task.title}</Text>
+            {task.scheduledFor && <Text size="1" color="gray" as="div">Prévu : {formatDay(toDateKey(task.scheduledFor) ?? doneHistoryDay, 'short')}</Text>}
+            </Box>
+        ))}
+        </Flex>
+        <Flex justify="end">
+        <Button variant="soft" color="gray" onClick={() => setDoneHistoryOpen(false)}>Fermer</Button>
+        </Flex>
+        </Flex>
+        </Dialog.Content>
+        </Dialog.Root>
         </Flex>
     );
 }

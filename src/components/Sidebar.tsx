@@ -7,7 +7,7 @@ import WebServerPanel from './sidebar/WebServerPanel';
 import DataPanel     from './sidebar/DataPanel';
 
 export default function Sidebar() {
-    const { sidebarOpen, toggleSidebar, settings, updateSettings, tasks, importTasks } = useAppStore();
+    const { sidebarOpen, toggleSidebar, settings, updateSettings, tasks, replaceTasks } = useAppStore();
     const { serverUrl, running, startServer, stopServer } = useWebServer();
 
     return (
@@ -56,7 +56,7 @@ export default function Sidebar() {
             <DataPanel
             tasks={tasks}
             settings={settings}
-            importTasks={importTasks}
+            replaceTasks={replaceTasks}
             updateSettings={updateSettings}
             />
             </>

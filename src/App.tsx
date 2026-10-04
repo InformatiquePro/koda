@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Theme } from '@radix-ui/themes';
 import '@radix-ui/themes/styles.css';
 import './index.css';
@@ -13,6 +13,7 @@ import DevBanner from './components/DevBanner';
 import CommandPalette from './components/CommandPalette';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { isHttpUrl } from './utils/http';
 
 
 export default function App() {
@@ -23,16 +24,31 @@ export default function App() {
     fetchSettings,
     pendingTimerTaskId,   setPendingTimerTaskId,   startTimer,
     pendingBlockedTaskId, setPendingBlockedTaskId, confirmBlocked,
+    syncCalendar,
   } = useAppStore();
 
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const calendarAutoSyncRef = useRef(false);
 
   const pendingTimerTask   = tasks.find((t) => t.id === pendingTimerTaskId);
   const pendingBlockedTask = tasks.find((t) => t.id === pendingBlockedTaskId);
 
   useEffect(() => {
-    void Promise.all([fetchTasks(), fetchSettings()]);
+    void (async () => {
+      await fetchTasks();
+      await fetchSettings();
+    })();
   }, [fetchTasks, fetchSettings]);
+
+  useEffect(() => {
+    if (!settings.agendaEnabled || !settings.calendarUrl || !isHttpUrl(settings.calendarUrl)) {
+      calendarAutoSyncRef.current = false;
+      return;
+    }
+    if (calendarAutoSyncRef.current) return;
+    calendarAutoSyncRef.current = true;
+    void syncCalendar().catch(console.error);
+  }, [settings.agendaEnabled, settings.calendarUrl, syncCalendar]);
 
   useEffect(() => {
     import('@tauri-apps/api/core').then(({ invoke }) => {

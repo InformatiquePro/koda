@@ -16,6 +16,7 @@ import { useAppStore } from '../store/appStore';
 import EditTaskModal from './EditTaskModal';
 import SubTaskList from './subtasks/SubTaskList';
 import AllDoneModal from './subtasks/AllDoneModal';
+import { formatSchedule, toDateKey, formatDay } from '../utils/dates';
 
 interface Props {
     task: Task;
@@ -161,10 +162,25 @@ export default function TaskCard({ task, columnColor }: Props) {
         <Flex gap="1" wrap="wrap">
         <Badge color={PRIORITY_COLOR[task.priority]} size="1">{task.priority}</Badge>
         {task.hasApi && <Badge color="blue" size="1">API</Badge>}
+        {task.calendarEventId && <Badge color="violet" size="1">📅 Agenda</Badge>}
         {(task.attachments?.length ?? 0) > 0 && (
             <Badge color="gray" variant="outline" size="1">📎 {task.attachments.length}</Badge>
         )}
         </Flex>
+
+        {task.scheduledFor && (
+            <Text size="1" weight="medium" style={{ color: '#c4b5fd' }}>
+            🗓 {formatSchedule(task.scheduledFor, task.scheduledEnd, task.calendarAllDay)}
+            </Text>
+        )}
+        {task.calendarLocation && (
+            <Text size="1" color="gray">📍 {task.calendarLocation}</Text>
+        )}
+        {task.column === 'DONE' && task.completedAt && toDateKey(task.completedAt) && (
+            <Text size="1" style={{ color: '#86efac' }}>
+            ✓ Terminé {formatDay(toDateKey(task.completedAt) as string, 'short')}
+            </Text>
+        )}
 
         {/* Timer actif */}
         {task.pomodoroStartedAt && task.pomodoroDuration && (

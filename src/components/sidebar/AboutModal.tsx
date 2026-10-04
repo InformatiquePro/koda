@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Dialog, Flex, Text, Button, Separator, Badge } from '@radix-ui/themes';
 import { open as openUrl } from '@tauri-apps/plugin-shell';
 
-const VERSION = '0.7.0.1_charles-elie_27-09-26';
+const VERSION = '0.8_charles-elie_27-09-26';
 const GITHUB = 'https://github.com/InformatiquePro/koda';
 
 export default function AboutModal() {
@@ -31,6 +31,12 @@ export default function AboutModal() {
             textAlign: 'center',
         }}
         >
+        <Dialog.Title style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+        À propos de Koda
+        </Dialog.Title>
+        <Dialog.Description style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+        Informations sur la version, la licence et l’auteur de Koda.
+        </Dialog.Description>
         {/* Logo / Titre */}
         <Flex direction="column" align="center" gap="3" py="4">
         <Text

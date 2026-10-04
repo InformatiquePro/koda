@@ -35,6 +35,23 @@ export interface Task {
     createdAt: string;
     updatedAt: string;
     subTasks?: SubTask[];
+    scheduledFor?: string;
+    scheduledEnd?: string;
+    completedAt?: string;
+    calendarEventId?: string;
+    calendarSource?: string;
+    calendarLocation?: string;
+    calendarAllDay?: boolean;
+}
+
+export interface CalendarEvent {
+    id: string;
+    title: string;
+    description?: string;
+    location?: string;
+    start: string;
+    end?: string;
+    allDay: boolean;
 }
 
 export interface AppSettings {
@@ -47,6 +64,11 @@ export interface AppSettings {
     enableApiSupport: boolean; // activer ou desactiver le mode api
     enableCustomActions: boolean; // activer ou desactiver le mode des actions contextuelles
     globalCommandShortcut: boolean;
+    agendaEnabled: boolean;
+    calendarUrl?: string;
+    calendarUsername?: string;
+    calendarPassword?: string;
+    calendarLastSyncAt?: string;
 }
 
 export interface Trigger {
@@ -58,4 +80,3 @@ export interface Trigger {
     actionPayload?: string;
     isActive: boolean;
 }
-

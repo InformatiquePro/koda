@@ -305,6 +305,7 @@
     return `
       <div class="card" style="border-left-color:${color}">
         <div class="card-title">${escapeHtml(t.title)}</div>
+        ${t.scheduledFor ? `<div class="card-desc">📅 ${escapeHtml(new Date(t.scheduledFor).toLocaleString('fr-FR'))}${t.calendarLocation ? ` · 📍 ${escapeHtml(t.calendarLocation)}` : ''}</div>` : ''}
         ${t.description ? `<div class="card-desc">${escapeHtml(t.description)}</div>` : ''}
         <div class="badges">
           <span class="badge ${priorityClass}">${priority}</span>
@@ -321,7 +322,12 @@
 
   function moveTask(id, newCol) {
     id = decodeURIComponent(id);
-    tasks = tasks.map(t => t.id === id ? { ...t, column: newCol, updatedAt: new Date().toISOString() } : t);
+    tasks = tasks.map(t => t.id === id ? {
+      ...t,
+      column: newCol,
+      completedAt: newCol === 'DONE' ? (t.completedAt || new Date().toISOString()) : undefined,
+      updatedAt: new Date().toISOString(),
+    } : t);
     render();
     send();
   }

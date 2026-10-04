@@ -1,6 +1,7 @@
 // src/utils/reportGenerator.ts
 
 import { Task } from '../types/koda';
+import { formatSchedule } from './dates';
 
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('fr-FR', {
@@ -13,7 +14,7 @@ function line(char = '─', length = 60): string {
     return char.repeat(length);
 }
 
-export function generateReport(tasks: Task[]): string {
+export function generateReport(tasks: Task[], title = 'RAPPORT JOURNALIER'): string {
     const now   = new Date();
     const today = now.toLocaleDateString('fr-FR', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -67,14 +68,17 @@ export function generateReport(tasks: Task[]): string {
         const desc     = t.description
         ? `\n     └─ ${t.description.slice(0, 120)}${t.description.length > 120 ? '…' : ''}` : '';
         const blocked  = t.blockedReason ? `\n     🔴 Raison : ${t.blockedReason}` : '';
+        const agenda   = t.scheduledFor
+        ? `\n     📅 ${formatSchedule(t.scheduledFor, t.scheduledEnd, t.calendarAllDay)}${t.calendarLocation ? ` · ${t.calendarLocation}` : ''}`
+        : '';
         const subs     = subTaskBlock(t);
-        return `  ${priority} ${t.title}${api}${timer}${desc}${blocked}${subs}`;
+        return `  ${priority} ${t.title}${api}${timer}${agenda}${desc}${blocked}${subs}`;
     }
 
     const lines: string[] = [];
 
     lines.push(line('═'));
-    lines.push('  ⚡ KODA — RAPPORT JOURNALIER');
+    lines.push(`  ⚡ KODA — ${title}`);
     lines.push(`  ${today}`);
     lines.push(`  Généré le ${formatDate(now.toISOString())}`);
     lines.push(line('═'));

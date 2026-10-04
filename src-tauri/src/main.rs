@@ -76,6 +76,32 @@ pub struct Task {
     pub blocked_reason: Option<String>,
     #[serde(rename = "subTasks", default)]
     pub sub_tasks: Vec<SubTask>,
+    #[serde(rename = "scheduledFor")]
+    pub scheduled_for: Option<String>,
+    #[serde(rename = "scheduledEnd")]
+    pub scheduled_end: Option<String>,
+    #[serde(rename = "completedAt")]
+    pub completed_at: Option<String>,
+    #[serde(rename = "calendarEventId")]
+    pub calendar_event_id: Option<String>,
+    #[serde(rename = "calendarSource")]
+    pub calendar_source: Option<String>,
+    #[serde(rename = "calendarLocation")]
+    pub calendar_location: Option<String>,
+    #[serde(rename = "calendarAllDay")]
+    pub calendar_all_day: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarEvent {
+    pub id: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub location: Option<String>,
+    pub start: String,
+    pub end: Option<String>,
+    pub all_day: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -98,6 +124,16 @@ pub struct AppSettings {
     pub enable_custom_actions: bool,
     #[serde(rename = "globalCommandShortcut", default)]
     pub global_command_shortcut: bool,
+    #[serde(rename = "agendaEnabled", default)]
+    pub agenda_enabled: bool,
+    #[serde(rename = "calendarUrl")]
+    pub calendar_url: Option<String>,
+    #[serde(rename = "calendarUsername")]
+    pub calendar_username: Option<String>,
+    #[serde(rename = "calendarPassword")]
+    pub calendar_password: Option<String>,
+    #[serde(rename = "calendarLastSyncAt")]
+    pub calendar_last_sync_at: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -112,6 +148,11 @@ impl Default for AppSettings {
             enable_api_support: false,
             enable_custom_actions: false,
             global_command_shortcut: false,
+            agenda_enabled: false,
+            calendar_url: None,
+            calendar_username: None,
+            calendar_password: None,
+            calendar_last_sync_at: None,
         }
     }
 }
@@ -281,6 +322,12 @@ async fn delete_task(app: tauri::AppHandle, id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn replace_tasks(app: tauri::AppHandle, tasks: Vec<Task>) -> Result<(), String> {
+    let _guard = DATA_LOCK.lock().await;
+    write_tasks_file(&app, &tasks).await
+}
+
+#[tauri::command]
 async fn export_tasks_json(tasks: Vec<Task>) -> Result<String, String> {
     dev_log!("[export_tasks_json] export de {} tâche(s)", tasks.len());
     serde_json::to_string_pretty(&tasks).map_err(|e| e.to_string())
@@ -377,6 +424,293 @@ pub async fn execute_webhook(
             Err(e.to_string())
         }
     }
+}
+
+fn decode_xml_text(value: &str) -> String {
+    value
+        .replace("<![CDATA[", "")
+        .replace("]]>", "")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&#13;", "\r")
+        .replace("&#10;", "\n")
+        .replace("&#xD;", "\r")
+        .replace("&#xA;", "\n")
+        .replace("&amp;", "&")
+}
+
+fn extract_calendar_data(xml: &str) -> Vec<String> {
+    let mut result = Vec::new();
+    let mut cursor = 0;
+
+    while let Some(relative_start) = xml[cursor..].find("calendar-data") {
+        let name_end = cursor + relative_start + "calendar-data".len();
+        let Some(open_start) = xml[..name_end].rfind('<') else {
+            cursor = name_end;
+            continue;
+        };
+        if xml.as_bytes().get(open_start + 1) == Some(&b'/') {
+            cursor = name_end;
+            continue;
+        }
+        let Some(open_end_rel) = xml[name_end..].find('>') else { break };
+        let content_start = name_end + open_end_rel + 1;
+        let Some(close_start_rel) = xml[content_start..].find("</") else { break };
+        let close_start = content_start + close_start_rel;
+        let Some(close_end_rel) = xml[close_start..].find('>') else { break };
+        let closing_tag = &xml[close_start..close_start + close_end_rel + 1];
+        if closing_tag.contains("calendar-data") {
+            result.push(decode_xml_text(&xml[content_start..close_start]));
+        }
+        cursor = close_start + close_end_rel + 1;
+    }
+
+    result
+}
+
+fn unfold_ical_lines(content: &str) -> Vec<String> {
+    let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
+    let mut lines: Vec<String> = Vec::new();
+    for line in normalized.lines() {
+        if (line.starts_with(' ') || line.starts_with('\t')) && !lines.is_empty() {
+            if let Some(previous) = lines.last_mut() {
+                previous.push_str(line.trim_start_matches([' ', '\t']));
+            }
+        } else {
+            lines.push(line.to_string());
+        }
+    }
+    lines
+}
+
+fn decode_ical_text(value: &str) -> String {
+    value
+        .replace("\\n", "\n")
+        .replace("\\N", "\n")
+        .replace("\\,", ",")
+        .replace("\\;", ";")
+        .replace("\\\\", "\\")
+}
+
+fn normalize_calendar_datetime(value: &str) -> Option<(String, bool)> {
+    let value = value.trim();
+    if value.len() == 8 && value.chars().all(|character| character.is_ascii_digit()) {
+        let date = chrono::NaiveDate::parse_from_str(value, "%Y%m%d").ok()?;
+        return Some((date.format("%Y-%m-%d").to_string(), true));
+    }
+    if let Ok(date) = chrono::DateTime::parse_from_rfc3339(value) {
+        return Some((date.to_rfc3339(), false));
+    }
+    if let Ok(date) = chrono::DateTime::parse_from_str(value, "%Y%m%dT%H%M%S%z") {
+        return Some((date.to_rfc3339(), false));
+    }
+    if let Some(without_z) = value.strip_suffix('Z') {
+        let date = chrono::NaiveDateTime::parse_from_str(without_z, "%Y%m%dT%H%M%S").ok()?;
+        return Some((format!("{}Z", date.format("%Y-%m-%dT%H:%M:%S")), false));
+    }
+    let date = chrono::NaiveDateTime::parse_from_str(value, "%Y%m%dT%H%M%S").ok()?;
+    Some((date.format("%Y-%m-%dT%H:%M:%S").to_string(), false))
+}
+
+fn parse_ical_events(content: &str, first_day: &str, last_day: &str) -> Vec<CalendarEvent> {
+    #[derive(Default)]
+    struct RawEvent {
+        uid: String,
+        recurrence_id: String,
+        summary: String,
+        description: String,
+        location: String,
+        start: String,
+        end: String,
+        start_is_date: bool,
+        status: String,
+    }
+
+    let mut events = Vec::new();
+    let mut current: Option<RawEvent> = None;
+
+    for line in unfold_ical_lines(content) {
+        if line == "BEGIN:VEVENT" {
+            current = Some(RawEvent::default());
+            continue;
+        }
+        if line == "END:VEVENT" {
+            if let Some(raw) = current.take() {
+                if raw.status.eq_ignore_ascii_case("CANCELLED") || raw.start.is_empty() {
+                    continue;
+                }
+                let Some((start, all_day)) = normalize_calendar_datetime(&raw.start) else { continue };
+                let day = &start[..10.min(start.len())];
+                if day < first_day || day >= last_day {
+                    continue;
+                }
+                let end = normalize_calendar_datetime(&raw.end).map(|item| item.0);
+                let event_id = if raw.uid.is_empty() {
+                    format!("{}::{}", raw.summary, start)
+                } else if raw.recurrence_id.is_empty() {
+                    raw.uid
+                } else {
+                    format!("{}::{}", raw.uid, raw.recurrence_id)
+                };
+                events.push(CalendarEvent {
+                    id: event_id,
+                    title: if raw.summary.trim().is_empty() {
+                        "Événement sans titre".to_string()
+                    } else {
+                        decode_ical_text(raw.summary.trim())
+                    },
+                    description: (!raw.description.trim().is_empty())
+                        .then(|| decode_ical_text(raw.description.trim())),
+                    location: (!raw.location.trim().is_empty())
+                        .then(|| decode_ical_text(raw.location.trim())),
+                    start,
+                    end,
+                    all_day: all_day || raw.start_is_date,
+                });
+            }
+            continue;
+        }
+
+        let Some(raw) = current.as_mut() else { continue };
+        let Some((property, value)) = line.split_once(':') else { continue };
+        let name = property.split(';').next().unwrap_or(property).to_ascii_uppercase();
+        match name.as_str() {
+            "UID" => raw.uid = value.to_string(),
+            "RECURRENCE-ID" => raw.recurrence_id = value.to_string(),
+            "SUMMARY" => raw.summary = value.to_string(),
+            "DESCRIPTION" => raw.description = value.to_string(),
+            "LOCATION" => raw.location = value.to_string(),
+            "DTSTART" => {
+                raw.start = value.to_string();
+                raw.start_is_date = property.to_ascii_uppercase().contains("VALUE=DATE");
+            }
+            "DTEND" => raw.end = value.to_string(),
+            "STATUS" => raw.status = value.to_string(),
+            _ => {}
+        }
+    }
+
+    events.sort_by(|left, right| left.start.cmp(&right.start).then(left.title.cmp(&right.title)));
+    events
+}
+
+#[tauri::command]
+fn parse_ical_content(content: String) -> Result<Vec<CalendarEvent>, String> {
+    if content.len() > 25 * 1024 * 1024 {
+        return Err("Le fichier iCalendar dépasse la limite de 25 Mo".to_string());
+    }
+    if !content.contains("BEGIN:VCALENDAR") {
+        return Err("Le fichier sélectionné n’est pas un agenda iCalendar valide".to_string());
+    }
+    Ok(parse_ical_events(&content, "0000-01-01", "9999-12-31"))
+}
+
+async fn calendar_request(
+    client: &reqwest::Client,
+    url: &str,
+    username: Option<&str>,
+    password: Option<&str>,
+    method: reqwest::Method,
+    body: Option<String>,
+) -> Result<reqwest::Response, String> {
+    let mut request = client.request(method, url);
+    if let Some(username) = username.filter(|value| !value.is_empty()) {
+        request = request.basic_auth(username, password);
+    }
+    if let Some(body) = body {
+        request = request
+            .header("Depth", "1")
+            .header("Content-Type", "application/xml; charset=utf-8")
+            .body(body);
+    }
+    request.send().await.map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn sync_calendar(
+    url: String,
+    username: Option<String>,
+    password: Option<String>,
+    range_start: String,
+    range_end: String,
+) -> Result<Vec<CalendarEvent>, String> {
+    let parsed_url = reqwest::Url::parse(url.trim()).map_err(|_| "URL d’agenda invalide".to_string())?;
+    if !matches!(parsed_url.scheme(), "http" | "https") {
+        return Err("Seules les URL HTTP et HTTPS sont autorisées".to_string());
+    }
+
+    let start = chrono::DateTime::parse_from_rfc3339(&range_start)
+        .map_err(|_| "Date de début de synchronisation invalide".to_string())?;
+    let end = chrono::DateTime::parse_from_rfc3339(&range_end)
+        .map_err(|_| "Date de fin de synchronisation invalide".to_string())?;
+    let first_day = start.format("%Y-%m-%d").to_string();
+    let last_day = end.format("%Y-%m-%d").to_string();
+    let caldav_start = start.with_timezone(&chrono::Utc).format("%Y%m%dT%H%M%SZ");
+    let caldav_end = end.with_timezone(&chrono::Utc).format("%Y%m%dT%H%M%SZ");
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|error| error.to_string())?;
+    let username = username.as_deref();
+    let password = password.as_deref();
+
+    let report_body = format!(
+        r#"<?xml version="1.0" encoding="utf-8" ?>
+<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+  <d:prop><d:getetag/><c:calendar-data><c:expand start="{caldav_start}" end="{caldav_end}"/></c:calendar-data></d:prop>
+  <c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"><c:time-range start="{caldav_start}" end="{caldav_end}"/></c:comp-filter></c:comp-filter></c:filter>
+</c:calendar-query>"#
+    );
+    let report_method = reqwest::Method::from_bytes(b"REPORT").map_err(|error| error.to_string())?;
+    let mut response = calendar_request(
+        &client,
+        parsed_url.as_str(),
+        username,
+        password,
+        report_method,
+        Some(report_body),
+    ).await?;
+
+    if matches!(response.status().as_u16(), 400 | 404 | 405 | 501) {
+        response = calendar_request(
+            &client,
+            parsed_url.as_str(),
+            username,
+            password,
+            reqwest::Method::GET,
+            None,
+        ).await?;
+    }
+
+    let status = response.status();
+    let mut content = response.text().await.map_err(|error| error.to_string())?;
+    if !status.is_success() && status.as_u16() != 207 {
+        content.truncate(500);
+        return Err(format!("Agenda HTTP {} — {}", status, content));
+    }
+
+    let calendars = if content.contains("BEGIN:VCALENDAR") && !content.contains("calendar-data") {
+        vec![content.clone()]
+    } else {
+        extract_calendar_data(&content)
+    };
+    if calendars.is_empty() {
+        if status.as_u16() == 207 || content.contains("multistatus") {
+            return Ok(Vec::new());
+        }
+        return Err("Le serveur n’a renvoyé aucune donnée iCalendar. Vérifie l’URL de la collection CalDAV.".to_string());
+    }
+
+    let mut events = Vec::new();
+    for calendar in calendars {
+        events.extend(parse_ical_events(&calendar, &first_day, &last_day));
+    }
+    events.sort_by(|left, right| left.start.cmp(&right.start).then(left.id.cmp(&right.id)));
+    events.dedup_by(|left, right| left.id == right.id);
+    Ok(events)
 }
 
 #[tauri::command]
@@ -503,7 +837,10 @@ fn main() {
         get_tasks,
         save_task,
         delete_task,
+        replace_tasks,
         send_webhook,
+        sync_calendar,
+        parse_ical_content,
         export_tasks_json,
         start_web_server,
         sync_tasks_to_server,
@@ -518,7 +855,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::execute_webhook;
+    use super::{execute_webhook, extract_calendar_data, parse_ical_content, parse_ical_events};
 
     #[tokio::test]
     async fn webhook_rejects_non_http_urls() {
@@ -529,6 +866,44 @@ mod tests {
     #[tokio::test]
     async fn webhook_rejects_unknown_methods_before_sending() {
         let result = execute_webhook("https://example.com".into(), "TRACE".into(), None).await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn extracts_and_parses_caldav_calendar_data() {
+        let xml = r#"<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+          <d:response><d:propstat><d:prop><c:calendar-data>BEGIN:VCALENDAR&#13;
+BEGIN:VEVENT&#13;
+UID:meeting-42&#13;
+DTSTART:20260927T130000Z&#13;
+DTEND:20260927T140000Z&#13;
+SUMMARY:Réunion équipe&#13;
+LOCATION:Bureau 2&#13;
+END:VEVENT&#13;
+END:VCALENDAR</c:calendar-data></d:prop></d:propstat></d:response>
+        </d:multistatus>"#;
+        let calendars = extract_calendar_data(xml);
+        assert_eq!(calendars.len(), 1);
+        let events = parse_ical_events(&calendars[0], "2026-09-01", "2026-10-01");
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].title, "Réunion équipe");
+        assert_eq!(events[0].location.as_deref(), Some("Bureau 2"));
+        assert_eq!(events[0].start, "2026-09-27T13:00:00Z");
+    }
+
+    #[test]
+    fn parses_all_day_and_folded_ical_events() {
+        let calendar = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:day-1\r\nDTSTART;VALUE=DATE:20260928\r\nSUMMARY:Très longue réunion qui est\r\n pliée\r\nEND:VEVENT\r\nEND:VCALENDAR";
+        let events = parse_ical_events(calendar, "2026-09-01", "2026-10-01");
+        assert_eq!(events.len(), 1);
+        assert!(events[0].all_day);
+        assert_eq!(events[0].start, "2026-09-28");
+        assert_eq!(events[0].title, "Très longue réunion qui estpliée");
+    }
+
+    #[test]
+    fn rejects_a_local_file_that_is_not_icalendar() {
+        let result = parse_ical_content("ceci n’est pas un agenda".to_string());
         assert!(result.is_err());
     }
 }

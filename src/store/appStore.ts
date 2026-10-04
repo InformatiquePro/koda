@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { v4 as uuidv4 } from 'uuid';
-import { AppSettings, Column, CustomAction, Priority, SubTask, Task } from '../types/koda';
+import { AppSettings, CalendarEvent, Column, CustomAction, Priority, SubTask, Task } from '../types/koda';
 
 interface TaskExtras {
     hasApi?: boolean;
@@ -17,6 +17,8 @@ interface AppStore {
     sidebarOpen: boolean;
     pendingTimerTaskId: string | null;
     pendingBlockedTaskId: string | null;
+    agendaSyncing: boolean;
+    agendaError: string | null;
     fetchTasks: () => Promise<void>;
     fetchSettings: () => Promise<void>;
     addTask: (title: string, column?: Column, description?: string, priority?: Priority, extras?: TaskExtras) => void;
@@ -24,8 +26,13 @@ interface AppStore {
     moveTask: (taskId: string, newColumn: Column, promptTransition?: boolean) => void;
     updateTask: (task: Task) => void;
     updateSettings: (partial: Partial<AppSettings>) => void;
+    resetApp: () => Promise<void>;
     toggleSidebar: () => void;
     importTasks: (newTasks: Task[], broadcast?: boolean) => void;
+    replaceTasks: (newTasks: Task[]) => Promise<void>;
+    syncCalendar: () => Promise<number>;
+    previewIcalContent: (content: string) => Promise<CalendarEvent[]>;
+    importCalendarEvents: (events: CalendarEvent[], source: string) => Promise<number>;
     setPendingTimerTaskId: (id: string | null) => void;
     startTimer: (taskId: string, seconds: number) => void;
     stopTimer: (taskId: string) => void;
@@ -43,6 +50,11 @@ const DEFAULT_SETTINGS: AppSettings = {
     enableApiSupport: false,
     enableCustomActions: false,
     globalCommandShortcut: false,
+    agendaEnabled: false,
+    calendarUrl: undefined,
+    calendarUsername: undefined,
+    calendarPassword: undefined,
+    calendarLastSyncAt: undefined,
 };
 
 const COLUMNS: Column[] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE'];
@@ -66,6 +78,7 @@ function normalizeTask(value: Task): Task {
         subTasks: Array.isArray(value.subTasks) ? value.subTasks : [],
         createdAt: value.createdAt || now,
         updatedAt: value.updatedAt || now,
+        completedAt: column === 'DONE' ? (value.completedAt || value.updatedAt || now) : undefined,
     };
 }
 
@@ -77,12 +90,67 @@ function persistTask(task: Task) {
     invoke('save_task', { task }).catch(console.error);
 }
 
+function mergeCalendarEvents(current: Task[], events: CalendarEvent[], source: string) {
+    const byEventId = new Map(
+        current
+            .filter((task) => task.calendarEventId)
+            .map((task) => [task.calendarEventId as string, task])
+    );
+    const changed: Task[] = [];
+    const nowIso = new Date().toISOString();
+
+    for (const event of events) {
+        const calendarEventId = `${source}::${event.id}`;
+        const existing = byEventId.get(calendarEventId) ?? byEventId.get(event.id);
+        const task = normalizeTask(existing ? {
+            ...existing,
+            title: event.title,
+            description: event.description || undefined,
+            scheduledFor: event.start,
+            scheduledEnd: event.end,
+            calendarLocation: event.location,
+            calendarAllDay: event.allDay,
+            calendarEventId,
+            calendarSource: source,
+            updatedAt: nowIso,
+        } : {
+            id: uuidv4(),
+            title: event.title,
+            description: event.description || undefined,
+            column: 'TODO',
+            priority: 'medium',
+            tags: ['agenda'],
+            hasApi: false,
+            attachments: [],
+            customActions: [],
+            subTasks: [],
+            scheduledFor: event.start,
+            scheduledEnd: event.end,
+            calendarEventId,
+            calendarSource: source,
+            calendarLocation: event.location,
+            calendarAllDay: event.allDay,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+        });
+        changed.push(task);
+    }
+
+    const changedById = new Map(changed.map((task) => [task.id, task]));
+    const existingIds = new Set(current.map((task) => task.id));
+    const tasks = current.map((task) => changedById.get(task.id) ?? task);
+    tasks.push(...changed.filter((task) => !existingIds.has(task.id)));
+    return { tasks, changed };
+}
+
 export const useAppStore = create<AppStore>((set, get) => ({
     tasks: [],
     settings: DEFAULT_SETTINGS,
     sidebarOpen: true,
     pendingTimerTaskId: null,
     pendingBlockedTaskId: null,
+    agendaSyncing: false,
+    agendaError: null,
 
     fetchTasks: async () => {
         try {
@@ -160,6 +228,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
                     blockedReason: newColumn === 'BLOCKED' ? task.blockedReason : undefined,
                     pomodoroDuration: newColumn === 'BLOCKED' || newColumn === 'DONE' ? undefined : task.pomodoroDuration,
                     pomodoroStartedAt: newColumn === 'BLOCKED' || newColumn === 'DONE' ? undefined : task.pomodoroStartedAt,
+                    completedAt: newColumn === 'DONE' ? (task.completedAt ?? new Date().toISOString()) : undefined,
                     updatedAt: new Date().toISOString(),
                 };
                 return changedTask;
@@ -189,6 +258,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
             blockedReason: task.column === 'BLOCKED' ? task.blockedReason : undefined,
             pomodoroDuration: task.column === 'BLOCKED' || task.column === 'DONE' ? undefined : task.pomodoroDuration,
             pomodoroStartedAt: task.column === 'BLOCKED' || task.column === 'DONE' ? undefined : task.pomodoroStartedAt,
+            completedAt: task.column === 'DONE' ? (task.completedAt ?? new Date().toISOString()) : undefined,
             updatedAt: new Date().toISOString(),
         });
 
@@ -212,6 +282,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
         const settings = { ...get().settings, ...partial };
         set({ settings });
         invoke('save_settings', { settings }).catch(console.error);
+    },
+
+    resetApp: async () => {
+        const settings = { ...DEFAULT_SETTINGS };
+        const tasks: Task[] = [];
+
+        await Promise.all([
+            invoke('replace_tasks', { tasks }),
+            invoke('save_settings', { settings }),
+        ]);
+
+        set({
+            tasks,
+            settings,
+            pendingTimerTaskId: null,
+            pendingBlockedTaskId: null,
+            agendaSyncing: false,
+            agendaError: null,
+        });
+        syncServer(tasks);
     },
 
     toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -308,5 +398,87 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set({ tasks });
         if (broadcast) syncServer(tasks);
         tasks.forEach(persistTask);
+    },
+
+    replaceTasks: async (newTasks) => {
+        const normalized = newTasks.map(normalizeTask);
+        const tasks = Array.from(new Map(normalized.map((task) => [task.id, task])).values());
+        await invoke('replace_tasks', { tasks });
+        set({ tasks, pendingTimerTaskId: null, pendingBlockedTaskId: null });
+        syncServer(tasks);
+    },
+
+    syncCalendar: async () => {
+        const settings = get().settings;
+        if (!settings.agendaEnabled || !settings.calendarUrl?.trim()) {
+            const message = 'Configure et active d’abord ton agenda dans les paramètres.';
+            set({ agendaError: message });
+            throw new Error(message);
+        }
+
+        set({ agendaSyncing: true, agendaError: null });
+        try {
+            const now = new Date();
+            const rangeStart = new Date(now);
+            rangeStart.setDate(rangeStart.getDate() - 31);
+            const rangeEnd = new Date(now);
+            rangeEnd.setDate(rangeEnd.getDate() + 366);
+
+            const events = await invoke<CalendarEvent[]>('sync_calendar', {
+                url: settings.calendarUrl.trim(),
+                username: settings.calendarUsername?.trim() || null,
+                password: settings.calendarPassword || null,
+                rangeStart: rangeStart.toISOString(),
+                rangeEnd: rangeEnd.toISOString(),
+            });
+
+            const { tasks } = mergeCalendarEvents(
+                get().tasks,
+                events,
+                settings.calendarUrl.trim()
+            );
+
+            await invoke('replace_tasks', { tasks });
+            set({ tasks, agendaSyncing: false });
+            syncServer(tasks);
+
+            const calendarLastSyncAt = new Date().toISOString();
+            const nextSettings = { ...settings, calendarLastSyncAt };
+            set({ settings: nextSettings });
+            await invoke('save_settings', { settings: nextSettings });
+            return events.length;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            set({ agendaSyncing: false, agendaError: message });
+            throw error;
+        }
+    },
+
+    previewIcalContent: async (content) => {
+        set({ agendaSyncing: true, agendaError: null });
+        try {
+            const events = await invoke<CalendarEvent[]>('parse_ical_content', { content });
+            set({ agendaSyncing: false });
+            return events;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            set({ agendaSyncing: false, agendaError: message });
+            throw error;
+        }
+    },
+
+    importCalendarEvents: async (events, source) => {
+        set({ agendaSyncing: true, agendaError: null });
+        try {
+            const { tasks } = mergeCalendarEvents(get().tasks, events, `local:${source}`);
+            await invoke('replace_tasks', { tasks });
+            set({ tasks, agendaSyncing: false });
+            syncServer(tasks);
+            return events.length;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            set({ agendaSyncing: false, agendaError: message });
+            throw error;
+        }
     },
 }));
